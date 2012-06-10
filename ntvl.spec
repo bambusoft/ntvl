@@ -41,7 +41,7 @@ rm -rf $RPM_BUILD_ROOT
      /usr/sbin/edge
 %doc /usr/share/man/man1/supernode.1.gz
 %doc /usr/share/man/man8/edge.8.gz
-%doc /usr/share/man/man7/ntvl_v2.7.gz
+%doc /usr/share/man/man7/ntvl-v1.0.0.gz
 
 
 %changelog

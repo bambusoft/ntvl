@@ -1,19 +1,19 @@
-.TH "ntvl_v2" 7 "Sep 21, 2009" "revision 3909" "Background"
+.TH "ntvl-v1.0.0" 7 "Jun 10, 2012" "revision 120612-1704" "Background"
 .SH NAME
-NTVL Version 2 \- version 2 of the ntvl decentralised peer-to-peer network overlay
-VPN.
+NTVL Version 1 \- version 1 of the ntvl Nat Traversal Virtual LAN and
+decentralised peer-to-peer network overlay VPN.
 .SH DESCRIPTION
 NTVL is a peer-to-peer network overlay or VPN system that provides layer 2 over
 layer 3 encapsulation with data transform capabilities such as encryption and
-compression. This guide discusses the differences of version 2 or ntvl from
-version 1.
+compression. This guide discusses the differences of previous release candidates
+ntvl-RC and ntvl-v1.0.0 version.
 .SH PROTOCOLS
-NTVL-2 uses a different set of messages to communicate with edges and
-supernodes. The ntvl-2 messages are not compatible with ntvl-1. There is no
-backward compatibility for ntvl-1.
+NTVL-1 uses a different set of messages to communicate with edges and
+supernodes. The NTVL-RC messages are not compatible with NTVL-1. There is no
+backward compatibility for n2n.
 .SH ENCRYPTION
-NTVL-2 offers a new way of handling encryption compared to ntvl-1. NTVL-1 provided
-facility for a single community password with no expiration. In ntvl-2 this
+NTVL-1 offers a new way of handling encryption compared to NTVL-RC. NTVL-1 provided
+facility for a single community password with no expiration. In NTVL-1 this
 method is preserved but a new mechanism has been added using a key schedule
 file.
 .TP
@@ -31,7 +31,7 @@ known. As a result edges do not need to have accurate time synchronisation. The
 accuracy of required synchronisation depends to a large degree on the key
 schedule. Rapid key roll-overs requires more accurate time synchronisation.
 .P
-NTVL-2 provides the following encryption ciphers; more can be added as required:
+NTVL-1 provides the following encryption ciphers; more can be added as required:
 .TP
 .B (1) NULL
 Data is encapsulated unchanged. Useful for testing and high-performance, low
@@ -55,20 +55,20 @@ TF cipher with LZO compression of data prior to encryption.
 AES-CBC ciper with LZO compression of data prior to encryption.
 
 .SH EXTENSIBILITY
-NTVL-2 decouples the data transform system from the core of the edge
+NTVL-1 decouples the data transform system from the core of the edge
 operation. This allows for easier addition of new data transform
-operations. NTVL-2 reserves 64 standard transform identifiers (such as TwoFish
+operations. NTVL-1 reserves 64 standard transform identifiers (such as TwoFish
 encryption) but allocates transform identifiers 64 - 65536 for user-defined
 transforms. This allows anyone to add to ntvl new private transforms without
 breaking compatibility with the standard offering.
 
 .SH MULTIPLE SUPERNODES
-NTVL-2 introduces the capability of multiple supernodes to be used by an
-edge. NTVL-2 offers supernode in several flavours:
+NTVL-1 introduces the capability of multiple supernodes to be used by an
+edge. NTVL-1 offers supernode in several flavours:
 .TP
 Stand-alone supernode
 
-This is the same concept as from ntvl-1. Supernode is a small efficient C program
+This is the same concept as from NTVL-RC. Supernode is a small efficient C program
 which operates in isolation.
 .TP
 Federated supernodes
@@ -79,14 +79,14 @@ and switch supernodes if required. Supernodes can send PACKET or REGISTER
 messages to other supernodes to try and find the destination edge.
 
 .P
-The ntvl-2 edge implementation allows multiple supernodes to be specified on the
+The NTVL-1 edge implementation allows multiple supernodes to be specified on the
 command line. Edges monitor the current supernode for responses to
 REGISTER_SUPER messages. If 3 responses are missed then the edge starts looking
 for a new supernode. It cycles through the list of supernodes specified until it
 finds a working one.
 
 .SH EFFICIENCY
-The ntvl-2 message formats have been made more efficient. The amount of data
+The NTVL-1 message formats have been made more efficient. The amount of data
 overhead has been reduced by ensuring the messages contain only the data fields
 required. Some optional fields do not consume data if they are not present.
 
@@ -99,7 +99,7 @@ them. See the
 option
 
 .SH MANAGEMENT CONSOLE
-Edge and supernode in ntvl-2 provide a UDP-based management console. Both listen
+Edge and supernode in NTVL-1 provide a UDP-based management console. Both listen
 on the localhost address 127.0.0.1. Commands can be sent to the programs by
 sending to the UDP socket. Responses are returned to the socket from which
 commands were issued. This only works from the computer on which the programs
@@ -113,7 +113,7 @@ Space has been reserved in the supernode registration messages for an
 authentication mechanism.
 
 .SH MESSAGE SUMMARY
-The following message types work within ntvl-2.
+The following message types work within NTVL-1.
 .TP
 REGISTER_SUPER
 Sent from an edge to its local supernode to register its MAC with the community.
@@ -144,8 +144,8 @@ Federated supernodes exchanging community information.
 .SH OTHER DIFFERENCES
 .TP 
 HTTP Tunneling
-This experimental feature (-t option in ntvl_v1) of ntvl_v1 has been removed
-entirely from ntvl_v2.
+This experimental feature (-t option in NTVL-RC) of NTVL-1 has been removed
+entirely from NTVL-1.
 .SH AUTHORS
 .TP
 Mario Ricardo Rodriguez Somohano collab at bambusoft.com . main author of ntvl

@@ -107,25 +107,25 @@ add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
                    DEPENDS ${PROJECT_SOURCE_DIR}/supernode.1
                   )
 
-add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/doc/ntvl_v2.7.gz
-                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/ntvl_v2.7 > ${PROJECT_BINARY_DIR}/doc/ntvl_v2.7.gz
-                   DEPENDS ${PROJECT_SOURCE_DIR}/ntvl_v2.7
+add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
+                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0 > ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
+                   DEPENDS ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0
                   )
 
 add_custom_target(doc DEPENDS ${PROJECT_BINARY_DIR}/doc/edge.8.gz
                               ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
-                              ${PROJECT_BINARY_DIR}/doc/ntvl_v2.7.gz
+                              ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
                  )
 
 set_source_files_properties(${PROJECT_BINARY_DIR}/doc/edge.8.gz
                             ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
-                            ${PROJECT_BINARY_DIR}/doc/ntvl_v2.7.gz
+                            ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
                             PROPERTIES GENERATED 1)
 
 install(FILES ${PROJECT_BINARY_DIR}/doc/edge.8.gz
         DESTINATION /usr/share/man8)
 install(FILES ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
         DESTINATION /usr/share/man1)
-install(FILES ${PROJECT_BINARY_DIR}/doc/ntvl_v2.7.gz
+install(FILES ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
         DESTINATION /usr/share/man7)
 endif(DEFINED UNIX)

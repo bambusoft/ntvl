@@ -59,7 +59,7 @@ endif
 APPS=edge
 APPS+=supernode
 
-DOCS=edge.8.gz supernode.1.gz ntvl_v2.7.gz
+DOCS=edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
 
 all: $(APPS) $(DOCS)
 
@@ -91,11 +91,11 @@ version.o: Makefile
 clean:
 	rm -rf $(NTVL_OBJS) $(NTVL_LIB) $(APPS) $(DOCS) test *.dSYM *~
 
-install: edge supernode edge.8.gz supernode.1.gz ntvl_v2.7.gz
+install: edge supernode edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
 	echo "MANDIR=$(MANDIR)"
 	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
 	$(INSTALL_PROG) supernode $(SBINDIR)/
 	$(INSTALL_PROG) edge $(SBINDIR)/
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
-	$(INSTALL_DOC) ntvl_v2.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) ntvl-v1.0.0.gz $(MAN7DIR)/

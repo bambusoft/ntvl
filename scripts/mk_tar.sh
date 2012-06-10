@@ -22,13 +22,13 @@ function exit_fail()
 }
 
 PACKAGE="ntvl"
-PKG_VERSION="2.1.0"
+PKG_VERSION="1.0.0"
 PKG_AND_VERSION="${PACKAGE}-${PKG_VERSION}"
 
 TEMPDIR="tmp"
 
 SOURCE_MANIFEST="
-README
+README.md
 edge.c
 lzoconf.h
 lzodefs.h
@@ -56,7 +56,7 @@ version.c
 wire.c
 edge.8
 supernode.1
-ntvl_v2.7
+ntvl-v1.0.0
 debian/changelog
 debian/compat
 debian/control
@@ -68,6 +68,10 @@ debian/ntvl-edge.manpages
 debian/ntvl-supernode.manpages
 debian/README.Debian
 debian/rules
+docs/HACKING
+docs/INSTALL
+docs/LICENSE
+docs/USAGE
 "
 
 BASE=`pwd`
