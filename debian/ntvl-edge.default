@@ -1,0 +1,21 @@
+# Config file for the ntvl edge node daemon.
+
+# Sets the ntvl community name. All edges within the same community appear on
+# the same LAN (layer 2 network segment). Community name is 16 bytes in length.
+NTVL_COMMUNITY="MyCommunityName"
+
+# Sets the twofish encryption key from ASCII text. All edges communicating must
+# use the same key and community name.
+NTVL_KEY="MySecretCode"
+
+# Sets the ntvl supernode IP address to register to.
+NTVL_SUPERNODE="gw1.example.com"
+
+# Sets the ntvl virtual LAN IP address being claimed. This is a private IP
+# address. All IP addresses in an ntvl community typical belong to the same /24
+# net‐ work (ie. only the last octet of the IP addresses varies).
+NTVL_IP="10.10.10.11"
+
+# Uncomment this to get edge node started.
+#NTVL_EDGE_CONFIG_DONE="yes"
+
