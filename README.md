@@ -3,7 +3,9 @@ NTVL - Nat Traversal Virtual LAN
 
 Nat Traversal Virtual LAN / Virtual VPN, is a networking tool to create a public/private network on the Internet  bypassing firewalls.
 
-NTVL is a layer-two peer-to-peer virtual private network (VPN) which allows users to exploit features typical of P2P applications
+You can find the latest version at http://ntvl.bambusoft.mx
+
+NTVL can also use as a layer-two peer-to-peer virtual private network (VPN) which allows users to exploit features typical of P2P applications
 at network instead of application level. This means that users can gain native IP visibility (e.g. two PCs belonging to the same
 ntvl network can ping each other) and be reachable with the same network IP address regardless of the network where they currently belong.
 
@@ -34,5 +36,6 @@ an supernode:
 Edge nodes talk by means of virtual tap interfaces. Each tap interface is an natvl edge node.
 Each PC can have multiple tap interfaces, one per ntvl network, so that the same PC can belong to multiple communities
 
-This work is based on the n2n Layer Two Peer to Peer VPN http://www.ntop.org/products/n2n/
-Thanks to Luca Deri, Richard Andrews and many others for the initial work.
+This work is based on the n2n Layer Two Peer to Peer VPN project at http://www.ntop.org/products/n2n/
+and the nat-traverse project at http://m19s28.dyndns.org/iblech/nat-traverse/
+Thanks to Ingo Blechschmidt, Luca Deri, Richard Andrews and many others for their initial work.

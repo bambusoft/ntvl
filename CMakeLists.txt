@@ -81,13 +81,16 @@ target_link_libraries(edge ntvl)
 add_executable(supernode sn.c)
 target_link_libraries(supernode ntvl)
 
+#add_executable(tunnel)
+#target_link_libraries(tunnel ntvl)
+
 add_executable(test test.c)
 target_link_libraries(test ntvl)
 
 add_executable(benchmark benchmark.c)
 target_link_libraries(benchmark ntvl)
 
-install(TARGETS edge supernode
+install(TARGETS edge supernode tunnel
         RUNTIME DESTINATION sbin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

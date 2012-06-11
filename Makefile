@@ -63,7 +63,7 @@ endif
 APPS=edge
 APPS+=supernode
 
-MANFILES=edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
+MANFILES=edge.8.gz supernode.1.gz ntvl-v1.0.0.gz tunnel.1
 
 all: $(APPS) $(MANFILES)
 
@@ -100,6 +100,8 @@ install: edge supernode edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
 	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
 	$(INSTALL_PROG) supernode $(SBINDIR)/
 	$(INSTALL_PROG) edge $(SBINDIR)/
+	$(INSTALL_PROG) tunnel $(SBINDIR)/
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
+	$(INSTALL_DOC) tunnel.1 $(MAN1DIR)/
 	$(INSTALL_DOC) ntvl-v1.0.0.gz $(MAN7DIR)/

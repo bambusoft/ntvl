@@ -1,0 +1,239 @@
+NAME
+    tunnel - Use of UDP to traverse NAT gateways
+
+SYNOPSIS
+    To create a simple text-only tunnel, use the commands
+
+      user@left  $ tunnel 40000:natgw-of-right:40001
+      user@right $ tunnel 40001:natgw-of-left:40000
+
+    where 40000 is an unused UDP port on "left" and 40001 is an unused port
+    on "right". See "EXAMPLES" for more.
+
+VERSION
+    This document describes tunnel.
+
+DESCRIPTION
+    tunnel establishes connections between nodes which are behind NAT
+    gateways, i.e. hosts which do *not* have public IP addresses.
+    Additionally, you can setup a small VPN by using pppd on top of
+    tunnel (see "EXAMPLES"). tunnel does *not* need an external
+    server on the Internet, and it isn't necessary to reconfigure the
+    involved NAT gateways, either. *tunnel works out-of-the-box.*
+
+    See "TECHNIQUE" for how this is achieved.
+
+    Limitation: tunnel does not work with gateways which change the
+    port numbers. This is a fundamental problem of nat-traverse's design, as
+    the changed port numbers are (in general) not predictable.
+
+OPTIONS
+    "*local_port*:*peer*:*remote_port*" (required)
+        Sets the local port to use and the remote address to connect to.
+
+        Note that you have to give the IP address or hostname of the *NAT
+        gateway* of the host you want to connect to, as the target host
+        doesn't have a public IP address.
+
+    "--cmd="*pppd...*""
+        Runs the specified command after establishing the connection.
+
+        The command will be run with its STDIN and STDOUT bound to the
+        socket, i.e. everything the command writes to STDOUT will be
+        forwarded to the peer.
+
+        If no command is specified, tunnel will relay input from STDIN
+        to the peer and vice versa, i.e. tunnel degrades to netcat.
+
+    "--window=*10*"
+        Sets the number of initial garbage packets to send. The default, 10,
+        should work with most firewalls.
+
+    "--timeout=*10*"
+        Sets the maximum number of seconds to wait for an acknowledgement by
+        the peer.
+
+    "--quit-after-connect"
+        Quits tunnel after the tunnel has been established
+        successfully.
+
+        tunnel returns a non-0 statuscode to indicate that it wasn't
+        able to establish the tunnel.
+
+        "--quit-after-connect" is useful if you want another program to use
+        the tunnel. For example, you could configure OpenVPN to use the the
+        same ports as tunnel -- thus OpenVPN would be able to cross
+        NAT gateways.
+
+    "--version", "--help"
+
+TECHNIQUE
+    tunnel establishes connections between hosts behind NAT gateways
+    without need for reconfiguration of the involved NAT gateways.
+
+    1.  Firstly, tunnel on host "left" sends garbage UDP packets to
+        the NAT gateway of "right". These packets are, of course, discarded
+        by the firewall.
+
+    2.  Then "right"'s tunnel sends garbage UDP packets to the NAT
+        gateway of "left". These packets are *not* discarded, as "left"'s
+        NAT gateway thinks these packets are replies to the packets sent in
+        step 1!
+
+    3.  "left"'s tunnel continues to send garbage packets to "right"'s
+        NAT gateway. These packets are now not dropped either, as the NAT
+        gateway thinks the packets are replies to the packets sent in step
+        2.
+
+    4.  Finally, both hosts send an acknowledgement packet to signal
+        readiness. When these packets are received, the connection is
+        established and tunnel can either relay STDIN/STDOUT to the
+        socket or execute a program.
+
+EXAMPLES
+  Setup of a small VPN with PPP
+    It's easy to setup a VPN (Virtual Private Network) by using the
+    Point-to-Point Protocol Daemon, "pppd":
+
+      root@left # tunnel \
+          --cmd="pppd updetach noauth passive notty \
+                 ipparam vpn 10.0.0.1:10.0.0.2"
+          40000:natgw-of-right:40001
+      root@right # tunnel \
+          --cmd="pppd nodetach notty noauth"
+          40001:natgw-of-left:40000
+
+    "pppd" creates a new interface, typically "ppp0". Using this interface,
+    you can ping 10.0.0.1 or 10.0.0.2. As you can see, "pppd" upgrades the
+    data-only tunnel nat-traverse provides to a full IP tunnel. Thus you can
+    establish reliable TCP connections over the tunnel, even though the
+    tunnel uses UDP! Furthermore, you could even add IPv6 addresses to
+    "ppp0" by running "ip -6 addr add..."!
+
+    Note though that although this VPN *is* arguably a private network, it
+    is *not* secured in any way. You may want to use SSH to encrypt the
+    connection.
+
+  Port Forwarding with netcat
+    You can use "netcat" to forward one of your local UDP or TCP ports to an
+    arbitrary UDP or TCP port of the remote host, similar to "ssh -L" or
+    "ssh -R":
+
+      user@left  $ tunnel 10001:natgw-of-right:10002 \
+            --cmd="nc -vlp 20000"
+      user@right $ tunnel 10002:natgw-of-left:10001 \
+            --cmd="nc -vlp 22"
+
+    As soon as the tunnel is established (using UDP ports 10001 and 10002),
+    "left"'s TCP port 20000 is forwarded to "right"'s SSH Daemon (TCP port
+    22):
+
+      user@some-other-host $ ssh -p 20000 user@left
+      # Will connect to right's SSH daemon!
+
+    But do note that you lose the reliability of TCP in this example, as the
+    actual data is transported via UDP; so this is only a toy example. If
+    you want reliable streams, use PPP on top of tunnel, as described
+    above.
+
+  Setup of a VPN with OpenVPN
+    You can use <OpenVPN> over tunnel if you want to have a *secure*
+    VPN.
+
+    Using OpenVPN over tunnel requires only one change to OpenVPN's
+    configuration file, presuming that you don't want to use OpenVPN's
+    multi-client mode: You have to adjust the "code" and "lport" options
+    accordingly, for example:
+
+      # Options to add to left's and right's OpenVPN config:
+      port  60001
+      lport 60001
+
+      # Command to execute on left resp. right:
+      root@left  # until \
+                     tunnel --quit-after-connect 60001:right:60001 \
+                   do \
+                     sleep 5 \
+                   done; \
+                   openvpn [...]
+      root@right # until \
+                     tunnel --quit-after-connect 60001:left:60001 \
+                   do \
+                     sleep 5 \
+                   done; \
+                   openvpn [...]<!--
+
+    The "until" loop ensures that OpenVPN will not be started before
+    tunnel was able to establish the connection. Michael Kugele
+    ("michael (at) kugele.net") also reported a way to still be able to use
+    OpenVPN's multi-client mode with tunnel: As all instances of
+    tunnel have to use unique ports (because a connection is
+    identified by the source/destination port combination), you've to use
+    redirection rules to redirect the ports used by tunnel to the port
+    the OpenVPN daemon listens on:
+
+      iptables -t nat -A PREROUTING -p udp \
+        --dport $LPORT -j DNAT --to $HOST:$PORT
+      iptables -t nat -A PREROUTING -p udp \
+        --dport $PORT -j REDIRECT --to-port $LPORT
+
+    $LPORT specifies the source port tunnel uses on the server side,
+    and "$HOST:$PORT" is the address of the OpenVPN server.)
+
+LIMITATIONS
+    Only IPv4 is supported, tunnel won't work with IPv6 addresses.
+    Drop me a note if you do need IPv6 support.
+
+    tunnel does not work with gateways which change the port numbers.
+    This is a fundamental problem of tunnel's design, as the changed
+    port numbers are (in general) not predictable.
+
+SEE ALSO
+    <RFC 1631 at http://www.ietf.org/rfc/rfc1631.txt>
+        The IP Network Address Translator (NAT). K. Egevang, P. Francis. May
+        1994. (Obsoleted by RFC3022) (Status: INFORMATIONAL)
+
+    <RFC 3022 at http://www.ietf.org/rfc/rfc3022.txt>
+        Traditional IP Network Address Translator (Traditional NAT). P.
+        Srisuresh, K. Egevang. January 2001. (Obsoletes RFC1631) (Status:
+        INFORMATIONAL)
+
+    <RFC 1661 at http://www.ietf.org/rfc/rfc1661.txt>
+        The Point-to-Point Protocol (PPP). W. Simpson, Ed.. July 1994.
+        (Obsoletes RFC1548) (Updated by RFC2153) (Also STD0051) (Status:
+        STANDARD)
+
+    <http://ppp.samba.org/>
+        Website of Paul's PPP Package (open source implementation of the
+        Point-to-Point Protocol (PPP) on Linux and Solaris)
+
+    <German talk about tunnel at
+    http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf>
+        Dieser Vortrag zeigt, wie man einen Tunnel zwischen zwei Computern,
+        die beide hinter NAT-Gateways sitzen, hinbekommt. Dazu wird ein
+        neues Programm vorgestellt, welches sowohl einfache Tastendrücke an
+        die Gegenseite weiterleiten, als auch beliebige Programme mit
+        Verbindungen zur Gegenseite starten kann. Damit ist ein einfaches
+        VPN schnell aufgebaut.
+
+AUTHOR
+    Copyright (C) 2005, 2012 Ingo Blechschmidt, <iblech@web.de>.
+
+    You may want to visit tunnel's Freecode project page,
+    <http://freecode.com/projects/nat-traverse/>.
+
+LICENSE
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by the
+    Free Software Foundation; either version 2 of the License, or (at your
+    option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+    Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
