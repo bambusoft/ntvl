@@ -1,6 +1,5 @@
 /*
- * (C) 2007-09 - Luca Deri
- *               Richard Andrews
+ * (C) 2012 Mario Ricardo Rodriguez Somohano
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +15,8 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>
  *
  * Code contributions courtesy of:
+ * Luca Deri
+ * Richard Andrews
  * Massimo Torquati
  * Matt Gilg
  *
@@ -48,8 +49,7 @@ SOCKET open_socket(int local_port, int bind_any) {
   int sockopt = 1;
 
   if((sock_fd = socket(PF_INET, SOCK_DGRAM, 0))  < 0) {
-    traceEvent(TRACE_ERROR, "Unable to create socket [%s][%d]\n",
-	       strerror(errno), sock_fd);
+    traceEvent(TRACE_ERROR, "Unable to create socket [%s][%d]\n", strerror(errno), sock_fd);
     return(-1);
   }
 
@@ -70,9 +70,6 @@ SOCKET open_socket(int local_port, int bind_any) {
 
   return(sock_fd);
 }
-
-
-
 
 
 int traceLevel = 2 /* NORMAL */;
@@ -172,8 +169,7 @@ char* intoa(uint32_t /* host order */ addr, char* buf, uint16_t buf_len) {
 /* *********************************************** */
 
 char * macaddr_str( macstr_t buf,
-                    const ntvl_mac_t mac )
-{
+                    const ntvl_mac_t mac ) {
     snprintf(buf, NTVL_MACSTR_SIZE, "%02X:%02X:%02X:%02X:%02X:%02X",
              mac[0] & 0xFF, mac[1] & 0xFF, mac[2] & 0xFF,
              mac[3] & 0xFF, mac[4] & 0xFF, mac[5] & 0xFF);
@@ -215,14 +211,12 @@ char* msg_type2str(uint16_t msg_type) {
 
 /* *********************************************** */
 
-void hexdump(const uint8_t * buf, size_t len)
-{
+void hexdump(const uint8_t * buf, size_t len) {
     size_t i;
 
     if ( 0 == len ) { return; }
 
-    for(i=0; i<len; i++)
-    {
+    for(i=0; i<len; i++) {
         if((i > 0) && ((i % 16) == 0)) { printf("\n"); }
         printf("%02X ", buf[i] & 0xFF);
     }
@@ -233,10 +227,10 @@ void hexdump(const uint8_t * buf, size_t len)
 /* *********************************************** */
 
 void print_ntvl_version() {
-  printf("Welcome to ntvl v.%s for %s\n"
-         "Built on %s\n"
-	 "Copyright 2012 - http://www.bambusoft.com\n\n",
-         ntvl_sw_version, ntvl_sw_osName, ntvl_sw_buildDate);
+  printf(	"Welcome to ntvl v.%s for %s\n"
+			"Built on %s\n"
+			"Copyright 2012 - http://www.bambusoft.com\n\n",
+			ntvl_sw_version, ntvl_sw_osName, ntvl_sw_buildDate);
 }
 
 
@@ -248,14 +242,11 @@ void print_ntvl_version() {
  *
  *  @return NULL if not found; otherwise pointer to peer entry.
  */
-struct peer_info * find_peer_by_mac( struct peer_info * list, const ntvl_mac_t mac )
-{
-  while(list != NULL)
-    {
-      if( 0 == memcmp(mac, list->mac_addr, 6) )
-        {
-	  return list;
-        }
+struct peer_info * find_peer_by_mac( struct peer_info * list, const ntvl_mac_t mac ) {
+  while(list != NULL) {
+      if( 0 == memcmp(mac, list->mac_addr, 6) ) {
+		return list;
+      }
       list = list->next;
     }
 
@@ -266,12 +257,10 @@ struct peer_info * find_peer_by_mac( struct peer_info * list, const ntvl_mac_t m
 /** Return the number of elements in the list.
  *
  */
-size_t peer_list_size( const struct peer_info * list )
-{
+size_t peer_list_size( const struct peer_info * list ) {
   size_t retval=0;
 
-  while ( list )
-    {
+  while ( list ) {
       ++retval;
       list = list->next;
     }
@@ -285,8 +274,7 @@ size_t peer_list_size( const struct peer_info * list )
  *  insertion. list takes ownership of new.
  */
 void peer_list_add( struct peer_info * * list,
-                    struct peer_info * new )
-{
+                    struct peer_info * new ) {
   new->next = *list;
   new->last_seen = time(NULL);
   *list = new;
@@ -312,38 +300,27 @@ size_t purge_expired_registrations( struct peer_info ** peer_list ) {
 
 /** Purge old items from the peer_list and return the number of items that were removed. */
 size_t purge_peer_list( struct peer_info ** peer_list,
-                        time_t purge_before )
-{
+                        time_t purge_before ) {
   struct peer_info *scan;
   struct peer_info *prev;
   size_t retval=0;
 
   scan = *peer_list;
   prev = NULL;
-  while(scan != NULL)
-    {
-      if(scan->last_seen < purge_before)
-        {
-	  struct peer_info *next = scan->next;
+  while(scan != NULL) {
+      if(scan->last_seen < purge_before) {
+		  struct peer_info *next = scan->next;
 
-	  if(prev == NULL)
-            {
-	      *peer_list = next;
-            }
-	  else
-            {
-	      prev->next = next;
-            }
+		  if(prev == NULL) *peer_list = next;
+		  else prev->next = next;
 
-	  ++retval;
-	  free(scan);
-	  scan = next;
-        }
-      else
-        {
-	  prev = scan;
-	  scan = scan->next;
-        }
+		  ++retval;
+		  free(scan);
+		  scan = next;
+      } else {
+		prev = scan;
+		scan = scan->next;
+      }
     }
 
   return retval;
@@ -358,18 +335,11 @@ size_t clear_peer_list( struct peer_info ** peer_list )
 
     scan = *peer_list;
     prev = NULL;
-    while(scan != NULL)
-    {
+    while(scan != NULL) {
         struct peer_info *next = scan->next;
 
-        if(prev == NULL)
-        {
-            *peer_list = next;
-        }
-        else
-        {
-            prev->next = next;
-        }
+        if(prev == NULL) *peer_list = next;
+		else prev->next = next;
 
         ++retval;
         free(scan);
@@ -379,8 +349,7 @@ size_t clear_peer_list( struct peer_info ** peer_list )
     return retval;
 }
 
-static uint8_t hex2byte( const char * s )
-{
+static uint8_t hex2byte( const char * s ) {
   char tmp[3];
   tmp[0]=s[0];
   tmp[1]=s[1];
@@ -389,8 +358,7 @@ static uint8_t hex2byte( const char * s )
   return((uint8_t)strtol( s, NULL, 16 ));
 }
 
-extern int str2mac( uint8_t * outmac /* 6 bytes */, const char * s )
-{
+extern int str2mac( uint8_t * outmac /* 6 bytes */, const char * s ) {
   size_t i;
 
   /* break it down as one case for the first "HH", the 5 x through loop for
@@ -400,33 +368,28 @@ extern int str2mac( uint8_t * outmac /* 6 bytes */, const char * s )
   ++outmac;
   s+=2; /* don't skip colon yet - helps generalise loop. */
 
-  for (i=1; i<6; ++i )
-    {
+  for (i=1; i<6; ++i ) {
       s+=1;
       *outmac=hex2byte(s);
       ++outmac;
       s+=2;
-    }
+  }
 
   return 0; /* ok */
 }
 
 extern char * sock_to_cstr( ntvl_sock_str_t out,
-                            const ntvl_sock_t * sock )
-{
+                            const ntvl_sock_t * sock ) {
     int r;
 
     if ( NULL == out ) { return NULL; }
     memset(out, 0, NTVL_SOCKBUF_SIZE);
 
-    if ( AF_INET6 == sock->family )
-    {
+    if ( AF_INET6 == sock->family ) {
         /* INET6 not written yet */
         r = snprintf( out, NTVL_SOCKBUF_SIZE, "XXXX:%hu", sock->port );
         return out;
-    }
-    else
-    {
+    } else {
         const uint8_t * a = sock->addr.v4;
         r = snprintf( out, NTVL_SOCKBUF_SIZE, "%hu.%hu.%hu.%hu:%hu", 
                       (a[0] & 0xff), (a[1] & 0xff), (a[2] & 0xff), (a[3] & 0xff), sock->port );
@@ -436,12 +399,10 @@ extern char * sock_to_cstr( ntvl_sock_str_t out,
 
 /* @return zero if the two sockets are equivalent. */
 int sock_equal( const ntvl_sock_t * a,
-                const ntvl_sock_t * b )
-{
+                const ntvl_sock_t * b ) {
     if ( a->port != b->port ) { return 1; }
     if ( a->family != b->family ) { return 1; }
-    switch (a->family) /* they are the same */
-    {
+    switch (a->family) { /* they are the same */
     case AF_INET:
         if ( 0 != memcmp( a->addr.v4, b->addr.v4, IPV4_SIZE ) ) { return 1;};
         break;

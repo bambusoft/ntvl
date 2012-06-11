@@ -21,8 +21,7 @@
 struct ntvl_trans_op;
 typedef struct ntvl_trans_op ntvl_trans_op_t;
 
-struct ntvl_tostat
-{
+struct ntvl_tostat {
     uint8_t             can_tx;         /* Does this transop have a valid SA for encoding. */
     ntvl_cipherspec_t    tx_spec;        /* If can_tx, the spec used to encode. */
 };
@@ -48,8 +47,7 @@ typedef int             (*ntvl_transform_f)( ntvl_trans_op_t * arg,
  *  to use to decode the packet content. The transform code then decodes the
  *  packet and consults its internal key lookup.
  */
-struct ntvl_trans_op
-{
+struct ntvl_trans_op {
     void *              priv;   /* opaque data. Key schedule goes here. */
 
     ntvl_transform_t     transform_id;   /* link header enum to a transform */

@@ -2,7 +2,7 @@ project(ntvl)
 cmake_minimum_required(VERSION 2.6)
 
 # NTVL information
-set(NTVL_VERSION 2.1.0)
+set(NTVL_VERSION 1.0.0)
 set(NTVL_OSNAME ${CMAKE_SYSTEM})
 
 # NTVL specific params
@@ -96,36 +96,36 @@ install(TARGETS edge supernode
 # Documentation
 if(DEFINED UNIX)
 add_dependencies(ntvl doc)
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/doc)
-add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/doc/edge.8.gz
-                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/edge.8 > ${PROJECT_BINARY_DIR}/doc/edge.8.gz
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/docs)
+add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/edge.8.gz
+                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/edge.8 > ${PROJECT_BINARY_DIR}/docs/edge.8.gz
                    DEPENDS ${PROJECT_SOURCE_DIR}/edge.8
                   )
 
-add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
-                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/supernode.1 > ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
+add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
+                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/supernode.1 > ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
                    DEPENDS ${PROJECT_SOURCE_DIR}/supernode.1
                   )
 
-add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
-                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0 > ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
+add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
+                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0 > ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                    DEPENDS ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0
                   )
 
-add_custom_target(doc DEPENDS ${PROJECT_BINARY_DIR}/doc/edge.8.gz
-                              ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
-                              ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
+add_custom_target(doc DEPENDS ${PROJECT_BINARY_DIR}/docs/edge.8.gz
+                              ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
+                              ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                  )
 
-set_source_files_properties(${PROJECT_BINARY_DIR}/doc/edge.8.gz
-                            ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
-                            ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
+set_source_files_properties(${PROJECT_BINARY_DIR}/docs/edge.8.gz
+                            ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
+                            ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                             PROPERTIES GENERATED 1)
 
-install(FILES ${PROJECT_BINARY_DIR}/doc/edge.8.gz
+install(FILES ${PROJECT_BINARY_DIR}/docs/edge.8.gz
         DESTINATION /usr/share/man8)
-install(FILES ${PROJECT_BINARY_DIR}/doc/supernode.1.gz
+install(FILES ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
         DESTINATION /usr/share/man1)
-install(FILES ${PROJECT_BINARY_DIR}/doc/ntvl-v1.0.0.gz
+install(FILES ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
         DESTINATION /usr/share/man7)
 endif(DEFINED UNIX)

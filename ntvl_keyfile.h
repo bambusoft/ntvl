@@ -68,8 +68,7 @@
 #define NTVL_KEYFILE_LINESIZE    256
 
 /** This structure stores an encryption cipher spec. */
-struct ntvl_cipherspec
-{
+struct ntvl_cipherspec {
     ntvl_transform_t     t;                      /* NTVL_TRANSFORM_ID_xxx for this spec. */
     time_t              valid_from;             /* Start using the key at this time. */
     time_t              valid_until;            /* Key is valid if time < valid_until. */
@@ -78,7 +77,6 @@ struct ntvl_cipherspec
 };
 
 typedef struct ntvl_cipherspec ntvl_cipherspec_t;
-
 
 static const char * const DELIMITERS=" \t\n\r";
 

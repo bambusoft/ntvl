@@ -1,6 +1,6 @@
-Summary: NTVL peer-to-peer virtual private network system.
+Summary: NTVL Nat Traversal LAN & peer-to-peer virtual private network system.
 Name: ntvl
-Version: 2.1.0
+Version: 1.0.0
 Release: 1
 License: GPLv3
 Vendor: bambusoft.com
@@ -10,14 +10,14 @@ Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 
 %description
-NTVL is a peer-to-peer virtual private network system. NTVL uses the universal
-TUNTAP interface to create TAP network interfaces to an encrypted virtual
-LAN. Members of a community share encryption keys which allow exchange of
-data. The supernode is used for peer discovery and initial packet relay before
-direct peer-to-peer exchange is established.  Once direct packet exchange is
-established, the supernode is not required.
+NTVL is Nat Traversal LAN and a peer-to-peer virtual private network system.
+NTVL uses the universal TUNTAP interface to create TAP network interfaces to
+an encrypted virtual LAN. Members of a community share encryption keys which
+allow exchange of data. The supernode is used for peer discovery and initial
+packet relay before direct peer-to-peer exchange is established.  Once direct
+packet exchange is established, the supernode is not required.
 
-NTVL-2 introduces additional security features and multiple supernodes.
+NTVL-1 introduces additional security features and multiple supernodes.
 
 %prep
 
@@ -45,8 +45,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Jan 10 2012 Mario Rodriguez -
+- First release fon ntvl-1
 * Fri Oct 30 2009 Richard Andrews -
-- First beta for ntvl-2
+- First beta for n2n-2
 * Sat May  3 2008 Richard Andrews - 
 - Initial build.
 

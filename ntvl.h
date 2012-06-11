@@ -1,6 +1,5 @@
 /*
- * (C) 2007-09 - Luca Deri
- *               Richard Andrews
+ * (C) 2012 - Mario Ricardo Rodriguez Somohano
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +15,8 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>
  *
  * Code contributions courtesy of:
+ *    Luca Deri
+ *    Richard Andrews
  *    Babak Farrokhi [FreeBSD port]
  *    Lukasz Taczuk
  *
@@ -31,7 +32,6 @@
    ifconfig tun1 1.2.3.5 up
    ./edge -d tun0 -l 2000 -r 127.0.0.1:3000 -c hello
    ./edge -d tun1 -l 3000 -r 127.0.0.1:2000 -c hello
-
 
    tunctl -u UID -t tunX
 */
@@ -90,8 +90,7 @@
 #include <sys/wait.h>
 
 #define ETH_ADDR_LEN 6
-struct ether_hdr
-{
+struct ether_hdr {
     uint8_t  dhost[ETH_ADDR_LEN];
     uint8_t  shost[ETH_ADDR_LEN];
     uint16_t type;                /* higher layer protocol encapsulated */
@@ -175,7 +174,7 @@ struct peer_info {
 };
 
 struct ntvl_edge; /* defined in edge.c */
-typedef struct ntvl_edge         ntvl_edge_t;
+typedef struct ntvl_edge    ntvl_edge_t;
 
 
 /* ************************************** */

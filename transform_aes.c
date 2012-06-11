@@ -1,6 +1,7 @@
-/* (c) 2009 Richard Andrews */
+/* (c) 2012 Mario Ricardo Rodriguez Somohano  */
 /* Contributions from:
- *     - Jozef Kralik
+ *  Richard Andrews
+ *  Jozef Kralik
  */
 
 #include "ntvl.h"
@@ -22,8 +23,7 @@
 
 typedef unsigned char ntvl_aes_ivec_t[NTVL_AES_IVEC_SIZE];
 
-struct sa_aes
-{
+struct sa_aes {
     ntvl_cipherspec_t    spec;           /* cipher spec parameters */
     ntvl_sa_t            sa_id;          /* security association index */
     AES_KEY             enc_key;        /* tx key */
@@ -42,8 +42,7 @@ typedef struct sa_aes sa_aes_t;
  *  consists of the SA number and key material.
  *
  */
-struct transop_aes
-{
+struct transop_aes {
     ssize_t             tx_sa;
     size_t              num_sa;
     sa_aes_t            sa[NTVL_AES_NUM_SA];
@@ -51,16 +50,13 @@ struct transop_aes
 
 typedef struct transop_aes transop_aes_t;
 
-static int transop_deinit_aes( ntvl_trans_op_t * arg )
-{
+static int transop_deinit_aes( ntvl_trans_op_t * arg ) {
     transop_aes_t * priv = (transop_aes_t *)arg->priv;
     size_t i;
 
-    if ( priv )
-    {
+    if ( priv ) {
         /* Memory was previously allocated */
-        for (i=0; i<NTVL_AES_NUM_SA; ++i )
-        {
+        for (i=0; i<NTVL_AES_NUM_SA; ++i ) {
             sa_aes_t * sa = &(priv->sa[i]);
 
             sa->sa_id=0;
@@ -77,8 +73,7 @@ static int transop_deinit_aes( ntvl_trans_op_t * arg )
     return 0;
 }
 
-static size_t aes_choose_tx_sa( transop_aes_t * priv )
-{
+static size_t aes_choose_tx_sa( transop_aes_t * priv ) {
     return priv->tx_sa; /* set in tick */
 }
 
@@ -96,20 +91,11 @@ static size_t aes_choose_tx_sa( transop_aes_t * priv )
  * The value returned will be one of AES128_KEY_BYTES, AES192_KEY_BYTES or
  * AES256_KEY_BYTES.
  */
-static size_t aes_best_keysize(size_t numBytes)
-{
-    if (numBytes >= AES256_KEY_BYTES )
-    {
+static size_t aes_best_keysize(size_t numBytes) {
+    if (numBytes >= AES256_KEY_BYTES ) {
         return AES256_KEY_BYTES;
-    }
-    else if (numBytes >= AES192_KEY_BYTES)
-    {
-        return AES192_KEY_BYTES;
-    }
-    else
-    {
-        return AES128_KEY_BYTES;
-    }
+    } else	if (numBytes >= AES192_KEY_BYTES) return AES192_KEY_BYTES;
+			else return AES128_KEY_BYTES;
 }
 
 /** The aes packet format consists of:
@@ -125,17 +111,14 @@ static int transop_encode_aes( ntvl_trans_op_t * arg,
                                    uint8_t * outbuf,
                                    size_t out_len,
                                    const uint8_t * inbuf,
-                                   size_t in_len )
-{
+                                   size_t in_len ) {
     int len2=-1;
     transop_aes_t * priv = (transop_aes_t *)arg->priv;
     uint8_t assembly[NTVL_PKT_BUF_SIZE];
     uint32_t * pnonce;
 
-    if ( (in_len + TRANSOP_AES_NONCE_SIZE) <= NTVL_PKT_BUF_SIZE )
-    {
-        if ( (in_len + TRANSOP_AES_NONCE_SIZE + TRANSOP_AES_SA_SIZE + TRANSOP_AES_VER_SIZE) <= out_len )
-        {
+    if ( (in_len + TRANSOP_AES_NONCE_SIZE) <= NTVL_PKT_BUF_SIZE ) {
+        if ( (in_len + TRANSOP_AES_NONCE_SIZE + TRANSOP_AES_SA_SIZE + TRANSOP_AES_VER_SIZE) <= out_len ) {
             int len=-1;
             size_t idx=0;
             sa_aes_t * sa;
@@ -176,16 +159,8 @@ static int transop_encode_aes( ntvl_trans_op_t * arg,
                              &(sa->enc_key), sa->enc_ivec, 1 /* encrypt */ );
 
             len2 += TRANSOP_AES_VER_SIZE + TRANSOP_AES_SA_SIZE; /* size of data carried in UDP. */
-        }
-        else
-        {
-            traceEvent( TRACE_ERROR, "encode_aes outbuf too small." );
-        }
-    }
-    else
-    {
-        traceEvent( TRACE_ERROR, "encode_aes inbuf too big to encrypt." );
-    }
+        } else traceEvent( TRACE_ERROR, "encode_aes outbuf too small." );
+    } else traceEvent( TRACE_ERROR, "encode_aes inbuf too big to encrypt." );
 
     return len2;
 }
@@ -195,19 +170,14 @@ static int transop_encode_aes( ntvl_trans_op_t * arg,
  *
  * @return array index where found or -1 if not found
  */
-static ssize_t aes_find_sa( const transop_aes_t * priv, const ntvl_sa_t req_id )
-{
+static ssize_t aes_find_sa( const transop_aes_t * priv, const ntvl_sa_t req_id ) {
     size_t i;
     
-    for (i=0; i < priv->num_sa; ++i)
-    {
+    for (i=0; i < priv->num_sa; ++i) {
         const sa_aes_t * sa=NULL;
 
         sa = &(priv->sa[i]);
-        if (req_id == sa->sa_id)
-        {
-            return i;
-        }
+        if (req_id == sa->sa_id) return i;
     }
 
     return -1;
@@ -227,16 +197,14 @@ static int transop_decode_aes( ntvl_trans_op_t * arg,
                                    uint8_t * outbuf,
                                    size_t out_len,
                                    const uint8_t * inbuf,
-                                   size_t in_len )
-{
+                                   size_t in_len ) {
     int len=0;
     transop_aes_t * priv = (transop_aes_t *)arg->priv;
     uint8_t assembly[NTVL_PKT_BUF_SIZE];
 
     if ( ( (in_len - (TRANSOP_AES_VER_SIZE + TRANSOP_AES_SA_SIZE)) <= NTVL_PKT_BUF_SIZE ) /* Cipher text fits in assembly */ 
          && (in_len >= (TRANSOP_AES_VER_SIZE + TRANSOP_AES_SA_SIZE + TRANSOP_AES_NONCE_SIZE) ) /* Has at least version, SA and nonce */
-        )
-    {
+        ) {
         ntvl_sa_t sa_rx;
         ssize_t sa_idx=-1;
         size_t rem=in_len;
@@ -246,22 +214,19 @@ static int transop_decode_aes( ntvl_trans_op_t * arg,
         /* Get the encoding version to make sure it is supported */
         decode_uint8( &aes_enc_ver, inbuf, &rem, &idx );
 
-        if ( NTVL_AES_TRANSFORM_VERSION == aes_enc_ver )
-        {
+        if ( NTVL_AES_TRANSFORM_VERSION == aes_enc_ver ) {
             /* Get the SA number and make sure we are decrypting with the right one. */
             decode_uint32( &sa_rx, inbuf, &rem, &idx );
 
             sa_idx = aes_find_sa(priv, sa_rx);
-            if ( sa_idx >= 0 )
-            {
+            if ( sa_idx >= 0 ) {
                 sa_aes_t * sa = &(priv->sa[sa_idx]);
 
                 traceEvent( TRACE_DEBUG, "decode_aes %lu with SA %lu.", in_len, sa_rx, sa->sa_id );
 
                 len = (in_len - (TRANSOP_AES_VER_SIZE + TRANSOP_AES_SA_SIZE));
                 
-                if ( 0 == (len % AES_BLOCK_SIZE ) )
-                {
+                if ( 0 == (len % AES_BLOCK_SIZE ) ) {
                     uint8_t padding;
 
                     memset( &(sa->dec_ivec), 0, sizeof(NTVL_AES_IVEC_SIZE) );
@@ -275,8 +240,7 @@ static int transop_decode_aes( ntvl_trans_op_t * arg,
                      * AES_BLOCKSIZE-1 */
                     padding = assembly[ len-1 ] & 0xff; 
 
-                    if ( len >= (padding + TRANSOP_AES_NONCE_SIZE))
-                    {
+                    if ( len >= (padding + TRANSOP_AES_NONCE_SIZE)) {
                         /* strictly speaking for this to be an ethernet packet
                          * it is going to need to be even bigger; but this is
                          * enough to prevent segfaults. */
@@ -289,57 +253,41 @@ static int transop_decode_aes( ntvl_trans_op_t * arg,
                         memcpy( outbuf, 
                                 assembly + TRANSOP_AES_NONCE_SIZE, 
                                 len );
-                    }
-                    else
-                    {
-                        traceEvent( TRACE_WARNING, "UDP payload decryption failed." );
-                    }
-                }
-                else
-                {
+                    } else traceEvent( TRACE_WARNING, "UDP payload decryption failed." );
+                } else {
                     traceEvent( TRACE_WARNING, "Encrypted length %d is not a multiple of AES_BLOCK_SIZE (%d)", len, AES_BLOCK_SIZE );
                     len = 0;
                 }
 
-            }
-            else
-            {
+            } else {
                 /* Wrong security association; drop the packet as it is undecodable. */
                 traceEvent( TRACE_ERROR, "decode_aes SA number %lu not found.", sa_rx );
 
                 /* REVISIT: should be able to load a new SA at this point to complete the decoding. */
             }
-        }
-        else
-        {
+        } else {
             /* Wrong security association; drop the packet as it is undecodable. */
             traceEvent( TRACE_ERROR, "decode_aes unsupported aes version %u.", aes_enc_ver );
 
             /* REVISIT: should be able to load a new SA at this point to complete the decoding. */
         }        
     }
-    else
-    {
-        traceEvent( TRACE_ERROR, "decode_aes inbuf wrong size (%ul) to decrypt.", in_len );
-    }
+    else traceEvent( TRACE_ERROR, "decode_aes inbuf wrong size (%ul) to decrypt.", in_len );
 
     return len;
 }
 
-static int transop_addspec_aes( ntvl_trans_op_t * arg, const ntvl_cipherspec_t * cspec )
-{
+static int transop_addspec_aes( ntvl_trans_op_t * arg, const ntvl_cipherspec_t * cspec ) {
     int retval = 1;
     ssize_t pstat=-1;
     transop_aes_t * priv = (transop_aes_t *)arg->priv;
     uint8_t keybuf[NTVL_MAX_KEYSIZE];
 
-    if ( priv->num_sa < NTVL_AES_NUM_SA )
-    {
+    if ( priv->num_sa < NTVL_AES_NUM_SA ) {
         const char * op = (const char *)cspec->opaque;
         const char * sep = index( op, '_' );
 
-        if ( sep )
-        {
+        if ( sep ) {
             char tmp[256];
             size_t s;
             
@@ -354,8 +302,7 @@ static int transop_addspec_aes( ntvl_trans_op_t * arg, const ntvl_cipherspec_t *
 
             memset( keybuf, 0, NTVL_MAX_KEYSIZE );
             pstat = ntvl_parse_hex( keybuf, NTVL_MAX_KEYSIZE, sep+1, s );
-            if ( pstat > 0 )
-            {
+            if ( pstat > 0 ) {
                 /* pstat is number of bytes read into keybuf. */
                 sa_aes_t * sa = &(priv->sa[priv->num_sa]);
                 size_t aes_keysize_bytes;
@@ -385,23 +332,14 @@ static int transop_addspec_aes( ntvl_trans_op_t * arg, const ntvl_cipherspec_t *
                 ++(priv->num_sa);
                 retval = 0;
             }
-        }
-        else
-        {
-            traceEvent( TRACE_ERROR, "transop_addspec_aes : bad key data - missing '_'.\n");
-        }
-    }
-    else
-    {
-        traceEvent( TRACE_ERROR, "transop_addspec_aes : full.\n");
-    }
+        } else traceEvent( TRACE_ERROR, "transop_addspec_aes : bad key data - missing '_'.\n");
+    } else traceEvent( TRACE_ERROR, "transop_addspec_aes : full.\n");
     
     return retval;
 }
 
 
-static ntvl_tostat_t transop_tick_aes( ntvl_trans_op_t * arg, time_t now )
-{
+static ntvl_tostat_t transop_tick_aes( ntvl_trans_op_t * arg, time_t now ) {
     transop_aes_t * priv = (transop_aes_t *)arg->priv;
     size_t i;
     int found=0;
@@ -411,30 +349,20 @@ static ntvl_tostat_t transop_tick_aes( ntvl_trans_op_t * arg, time_t now )
 
     traceEvent( TRACE_DEBUG, "transop_aes tick num_sa=%u now=%lu", priv->num_sa, now );
 
-    for ( i=0; i < priv->num_sa; ++i )
-    {
-        if ( 0 == validCipherSpec( &(priv->sa[i].spec), now ) )
-        {
+    for ( i=0; i < priv->num_sa; ++i ) {
+        if ( 0 == validCipherSpec( &(priv->sa[i].spec), now ) ) {
             time_t remaining = priv->sa[i].spec.valid_until - now;
 
             traceEvent( TRACE_INFO, "transop_aes choosing tx_sa=%u (valid for %lu sec)", priv->sa[i].sa_id, remaining );
             priv->tx_sa=i;
             found=1;
             break;
-        }
-        else
-        {
-            traceEvent( TRACE_DEBUG, "transop_aes tick rejecting sa=%u  %lu -> %lu", 
+        } else traceEvent( TRACE_DEBUG, "transop_aes tick rejecting sa=%u  %lu -> %lu", 
                         priv->sa[i].sa_id, priv->sa[i].spec.valid_from, priv->sa[i].spec.valid_until );
-        }
     }
 
-    if ( 0==found)
-    {
-        traceEvent( TRACE_INFO, "transop_aes no keys are currently valid. Keeping tx_sa=%u", priv->tx_sa );
-    }
-    else
-    {
+    if ( 0==found) traceEvent( TRACE_INFO, "transop_aes no keys are currently valid. Keeping tx_sa=%u", priv->tx_sa );
+    else {
         r.can_tx = 1;
         r.tx_spec.t = NTVL_TRANSFORM_ID_AESCBC;
         r.tx_spec = priv->sa[priv->tx_sa].spec;
@@ -444,22 +372,17 @@ static ntvl_tostat_t transop_tick_aes( ntvl_trans_op_t * arg, time_t now )
 }
 
 
-int transop_aes_init( ntvl_trans_op_t * ttt )
-{
+int transop_aes_init( ntvl_trans_op_t * ttt ) {
     int retval = 1;
     transop_aes_t * priv = NULL;
 
-    if ( ttt->priv )
-    {
-        transop_deinit_aes( ttt );
-    }
+    if ( ttt->priv ) transop_deinit_aes( ttt );
 
     memset( ttt, 0, sizeof( ntvl_trans_op_t ) );
 
     priv = (transop_aes_t *) malloc( sizeof(transop_aes_t) );
 
-    if ( NULL != priv )
-    {
+    if ( NULL != priv ) {
         size_t i;
         sa_aes_t * sa=NULL;
 
@@ -475,8 +398,7 @@ int transop_aes_init( ntvl_trans_op_t * ttt )
         ttt->fwd = transop_encode_aes;
         ttt->rev = transop_decode_aes;
 
-        for(i=0; i<NTVL_AES_NUM_SA; ++i)
-        {
+        for(i=0; i<NTVL_AES_NUM_SA; ++i) {
             sa = &(priv->sa[i]);
             sa->sa_id=0;
             memset( &(sa->spec), 0, sizeof(ntvl_cipherspec_t) );
@@ -487,9 +409,7 @@ int transop_aes_init( ntvl_trans_op_t * ttt )
         }
 
         retval = 0;
-    }
-    else
-    {
+    } else {
         memset( ttt, 0, sizeof(ntvl_trans_op_t) );
         traceEvent( TRACE_ERROR, "Failed to allocate priv for aes" );
     }
@@ -499,55 +419,50 @@ int transop_aes_init( ntvl_trans_op_t * ttt )
 
 #else /* #if defined(NTVL_HAVE_AES) */
 
-struct transop_aes
-{
+struct transop_aes {
     ssize_t             tx_sa;
 };
 
 typedef struct transop_aes transop_aes_t;
 
 
-static int transop_deinit_aes( ntvl_trans_op_t * arg )
-{
+static int transop_deinit_aes( ntvl_trans_op_t * arg ) {
     transop_aes_t * priv = (transop_aes_t *)arg->priv;
 
-    if ( priv )
-    {
-        free(priv);
-    }
+    if ( priv ) free(priv);
 
     arg->priv=NULL; /* return to fully uninitialised state */
 
     return 0;
 }
 
+
 static int transop_encode_aes( ntvl_trans_op_t * arg,
                                    uint8_t * outbuf,
                                    size_t out_len,
                                    const uint8_t * inbuf,
-                                   size_t in_len )
-{
+                                   size_t in_len ) {
     return -1;
 }
+
 
 static int transop_decode_aes( ntvl_trans_op_t * arg,
                                    uint8_t * outbuf,
                                    size_t out_len,
                                    const uint8_t * inbuf,
-                                   size_t in_len )
-{
+                                   size_t in_len ) {
     return -1;
 }
 
-static int transop_addspec_aes( ntvl_trans_op_t * arg, const ntvl_cipherspec_t * cspec )
-{
+
+static int transop_addspec_aes( ntvl_trans_op_t * arg, const ntvl_cipherspec_t * cspec ) {
     traceEvent( TRACE_DEBUG, "transop_addspec_aes AES not built into edge.\n");
 
     return -1;
 }
 
-static ntvl_tostat_t transop_tick_aes( ntvl_trans_op_t * arg, time_t now )
-{
+
+static ntvl_tostat_t transop_tick_aes( ntvl_trans_op_t * arg, time_t now ) {
     ntvl_tostat_t r;
 
     memset( &r, 0, sizeof(r) );
@@ -555,22 +470,17 @@ static ntvl_tostat_t transop_tick_aes( ntvl_trans_op_t * arg, time_t now )
     return r;
 }
 
-int transop_aes_init( ntvl_trans_op_t * ttt )
-{
+int transop_aes_init( ntvl_trans_op_t * ttt ) {
     int retval = 1;
     transop_aes_t * priv = NULL;
 
-    if ( ttt->priv )
-    {
-        transop_deinit_aes( ttt );
-    }
+    if ( ttt->priv ) transop_deinit_aes( ttt );
 
     memset( ttt, 0, sizeof( ntvl_trans_op_t ) );
 
     priv = (transop_aes_t *) malloc( sizeof(transop_aes_t) );
 
-    if ( NULL != priv )
-    {
+    if ( NULL != priv ) {
         /* install the private structure. */
         ttt->priv = priv;
         priv->tx_sa=0; /* We will use this sa index for encoding. */
@@ -583,9 +493,7 @@ int transop_aes_init( ntvl_trans_op_t * ttt )
         ttt->rev = transop_decode_aes;
 
         retval = 0;
-    }
-    else
-    {
+    } else {
         memset( ttt, 0, sizeof(ntvl_trans_op_t) );
         traceEvent( TRACE_ERROR, "Failed to allocate priv for aes" );
     }

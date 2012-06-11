@@ -12,16 +12,13 @@
 
 
 #ifdef WIN32
-char *strsep( char **ppsz_string, const char *psz_delimiters )
-{
+char *strsep( char **ppsz_string, const char *psz_delimiters ) {
     char *p;
     char *psz_string = *ppsz_string;
-    if( !psz_string )
-        return NULL;
+    if( !psz_string ) return NULL;
 
     p = strpbrk( psz_string, psz_delimiters );
-    if( !p )
-    {
+    if( !p ) {
         *ppsz_string = NULL;
         return psz_string;
     }
@@ -41,8 +38,7 @@ char *strsep( char **ppsz_string, const char *psz_delimiters )
 ssize_t ntvl_parse_hex( uint8_t * keyBuf, 
                        size_t keyLen, 
                        const char * textKey,
-                       size_t textLen)
-{
+                       size_t textLen) {
     ssize_t retval=0;
     uint8_t * pout=keyBuf;
     size_t octet=0;
@@ -52,10 +48,8 @@ ssize_t ntvl_parse_hex( uint8_t * keyBuf,
     textEnd = textKey+textLen;
     pbeg=textKey;
 
-    while ( ( pbeg + 1 < textEnd ) && ( retval < (ssize_t)keyLen ) )
-    {
-      if ( 1 != sscanf( pbeg, "%02x", (unsigned int*)&octet ) )
-        {
+    while ( ( pbeg + 1 < textEnd ) && ( retval < (ssize_t)keyLen ) ) {
+      if ( 1 != sscanf( pbeg, "%02x", (unsigned int*)&octet ) ) {
             retval=-1;
             break;
         }
@@ -71,8 +65,7 @@ ssize_t ntvl_parse_hex( uint8_t * keyBuf,
 
 
 static int parseKeyLine( ntvl_cipherspec_t * spec, 
-                         const char * linein )
-{
+                         const char * linein ) {
     /* parameters are separated by whitespace */
     char line[NTVL_KEYFILE_LINESIZE];
     char * lp=line;
@@ -113,8 +106,7 @@ error:
 
 
 int validCipherSpec( const ntvl_cipherspec_t * k,
-                     time_t now )
-{
+                     time_t now ) {
     if ( k->valid_until < k->valid_from ) { goto bad; }
     if ( k->valid_from > now ) { goto bad; }
     if ( k->valid_until < now ) { goto bad; }
@@ -145,45 +137,33 @@ int ntvl_read_keyfile( ntvl_cipherspec_t * specs,     /* fill out this array of 
     traceEvent( TRACE_DEBUG, "Reading '%s'\n", ctrlfile_path );
 
     fp = fopen( ctrlfile_path, "r" );
-    if ( fp )
-    {
+    if ( fp ) {
         /* Read the file a line a time with fgets. */
         char line[NTVL_KEYFILE_LINESIZE];
         size_t lineNum=0;
 
-        while ( idx < numspecs )
-        {
+        while ( idx < numspecs ) {
             ntvl_cipherspec_t * k = &(specs[idx]);
             fgets( line, NTVL_KEYFILE_LINESIZE, fp );
             ++lineNum;
 
-            if ( strlen(line) > 1 )
-            {
-                if ( 0 == parseKeyLine( k, line ) )
-                {
-                    if ( k->valid_until > now )
-                    {
+            if ( strlen(line) > 1 ) {
+                if ( 0 == parseKeyLine( k, line ) ) {
+                    if ( k->valid_until > now ) {
                         traceEvent( TRACE_INFO, " --> [%u] from %lu, until %lu, transform=%hu, data=%s\n", 
                                     idx, k->valid_from, k->valid_until, k->t, k->opaque );
 
                         ++retval;
                         ++idx;
-                    }
-                    else
-                    {
+                    } else {
                         traceEvent( TRACE_INFO, " --X [%u] from %lu, until %lu, transform=%hu, data=%s\n", 
                                     idx, k->valid_from, k->valid_until, k->t, k->opaque );
 
                     }
-                }
-                else
-                {
-                    traceEvent( TRACE_WARNING, "Failed to decode line %u\n", lineNum );
-                }
+                } else traceEvent( TRACE_WARNING, "Failed to decode line %u\n", lineNum );
             }
 
-            if ( feof(fp) )
-            {
+            if ( feof(fp) ) {
                 break;
             }
 
@@ -192,9 +172,7 @@ int ntvl_read_keyfile( ntvl_cipherspec_t * specs,     /* fill out this array of 
 
         fclose( fp);
         fp=NULL;
-    }
-    else
-    {
+    } else {
         traceEvent( TRACE_ERROR, "Failed to open '%s'\n", ctrlfile_path );
         retval = -1;
     }

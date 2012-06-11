@@ -15,8 +15,7 @@
 
 int encode_uint8( uint8_t * base, 
                   size_t * idx,
-                  const uint8_t v )
-{
+                  const uint8_t v ) {
     *(base + (*idx)) = (v & 0xff);
     ++(*idx);
     return 1;
@@ -25,8 +24,7 @@ int encode_uint8( uint8_t * base,
 int decode_uint8( uint8_t * out,
                   const uint8_t * base,
                   size_t * rem,
-                  size_t * idx )
-{
+                  size_t * idx ) {
     if (*rem < 1 ) { return 0; }
 
     *out = ( base[*idx] & 0xff );
@@ -37,8 +35,7 @@ int decode_uint8( uint8_t * out,
 
 int encode_uint16( uint8_t * base, 
                    size_t * idx,
-                   const uint16_t v )
-{
+                   const uint16_t v ) {
     *(base + (*idx))     = ( v >> 8) & 0xff;
     *(base + (1 + *idx)) = ( v & 0xff );
     *idx += 2;
@@ -48,8 +45,7 @@ int encode_uint16( uint8_t * base,
 int decode_uint16( uint16_t * out,
                    const uint8_t * base,
                    size_t * rem,
-                   size_t * idx )
-{
+                   size_t * idx ) {
     if (*rem < 2 ) { return 0; }
 
     *out  = ( base[*idx] & 0xff ) << 8;
@@ -61,8 +57,7 @@ int decode_uint16( uint16_t * out,
 
 int encode_uint32( uint8_t * base, 
                    size_t * idx,
-                   const uint32_t v )
-{
+                   const uint32_t v ) {
     *(base + (0 + *idx)) = ( v >> 24) & 0xff;
     *(base + (1 + *idx)) = ( v >> 16) & 0xff;
     *(base + (2 + *idx)) = ( v >> 8) & 0xff;
@@ -74,8 +69,7 @@ int encode_uint32( uint8_t * base,
 int decode_uint32( uint32_t * out,
                    const uint8_t * base,
                    size_t * rem,
-                   size_t * idx )
-{
+                   size_t * idx ) {
     if (*rem < 4 ) { return 0; }
 
     *out  = ( base[0 + *idx] & 0xff ) << 24;
@@ -90,8 +84,7 @@ int decode_uint32( uint32_t * out,
 int encode_buf( uint8_t * base, 
                 size_t * idx,
                 const void * p, 
-                size_t s)
-{
+                size_t s) {
     memcpy( (base + (*idx)), p, s );
     *idx += s;
     return s;
@@ -102,8 +95,7 @@ int decode_buf( uint8_t * out,
                 size_t bufsize,
                 const uint8_t * base,
                 size_t * rem,
-                size_t * idx )
-{
+                size_t * idx ) {
     if (*rem < bufsize ) { return 0; }
 
     memcpy( out, (base + *idx), bufsize );
@@ -116,16 +108,14 @@ int decode_buf( uint8_t * out,
 
 int encode_mac( uint8_t * base, 
                 size_t * idx,
-                const ntvl_mac_t m )
-{
+                const ntvl_mac_t m ) {
     return encode_buf( base, idx, m, NTVL_MAC_SIZE );
 }
 
 int decode_mac( uint8_t * out, /* of size NTVL_MAC_SIZE. This clearer than passing a ntvl_mac_t */
                 const uint8_t * base,
                 size_t * rem,
-                size_t * idx )
-{
+                size_t * idx ) {
     return decode_buf( out, NTVL_MAC_SIZE, base, rem, idx );
 }
 
@@ -133,8 +123,7 @@ int decode_mac( uint8_t * out, /* of size NTVL_MAC_SIZE. This clearer than passi
 
 int encode_common( uint8_t * base, 
                    size_t * idx,
-                   const ntvl_common_t * common )
-{
+                   const ntvl_common_t * common ) {
     uint16_t flags=0;
     encode_uint8( base, idx, NTVL_PKT_VERSION );
     encode_uint8( base, idx, common->ttl );
@@ -151,16 +140,12 @@ int encode_common( uint8_t * base,
 int decode_common( ntvl_common_t * out,
                    const uint8_t * base,
                    size_t * rem,
-                   size_t * idx )
-{
+                   size_t * idx ) {
     size_t idx0=*idx;
     uint8_t dummy=0;
     decode_uint8( &dummy, base, rem, idx );
 
-    if ( NTVL_PKT_VERSION != dummy )
-    {
-        return -1;
-    }
+    if ( NTVL_PKT_VERSION != dummy ) return -1;
     
     decode_uint8( &(out->ttl), base, rem, idx );
     decode_uint16( &(out->flags), base, rem, idx );
@@ -175,31 +160,26 @@ int decode_common( ntvl_common_t * out,
 
 int encode_sock( uint8_t * base, 
                  size_t * idx,
-                 const ntvl_sock_t * sock )
-{
+                 const ntvl_sock_t * sock ) {
     int retval=0;
     uint16_t f;
 
-    switch (sock->family) 
-    {
-    case AF_INET:
-    {
-        f = 0;
-        retval += encode_uint16(base,idx,f);
-        retval += encode_uint16(base,idx,sock->port);
-        retval += encode_buf(base,idx,sock->addr.v4,IPV4_SIZE);
-        break;
-    }
-    case AF_INET6:
-    {
-        f = 0x8000;
-        retval += encode_uint16(base,idx,f);
-        retval += encode_uint16(base,idx,sock->port);
-        retval += encode_buf(base,idx,sock->addr.v6,IPV6_SIZE);
-        break;
-    }
-    default:
-        retval=-1;
+    switch (sock->family) {
+		case AF_INET: {
+			f = 0;
+			retval += encode_uint16(base,idx,f);
+			retval += encode_uint16(base,idx,sock->port);
+			retval += encode_buf(base,idx,sock->addr.v4,IPV4_SIZE);
+			break;
+		}
+		case AF_INET6: {
+			f = 0x8000;
+			retval += encode_uint16(base,idx,f);
+			retval += encode_uint16(base,idx,sock->port);
+			retval += encode_buf(base,idx,sock->addr.v6,IPV6_SIZE);
+			break;
+		}
+		default: retval=-1;
     }
 
     return retval;
@@ -209,22 +189,18 @@ int encode_sock( uint8_t * base,
 int decode_sock( ntvl_sock_t * sock,
                  const uint8_t * base,
                  size_t * rem,
-                 size_t * idx )
-{
+                 size_t * idx ) {
     size_t * idx0=idx;
     uint16_t f;
     
     decode_uint16( &f, base, rem, idx );
 
-    if( f & 0x8000 )
-    {
+    if( f & 0x8000 ) {
         /* IPv6 */
         sock->family = AF_INET6;
         decode_uint16( &(sock->port), base, rem, idx );
         decode_buf( sock->addr.v6, IPV6_SIZE, base, rem, idx );
-    }
-    else
-    {
+    } else {
         /* IPv4 */
         sock->family = AF_INET;
         decode_uint16( &(sock->port), base, rem, idx );
@@ -238,17 +214,13 @@ int decode_sock( ntvl_sock_t * sock,
 int encode_REGISTER( uint8_t * base, 
                      size_t * idx,
                      const ntvl_common_t * common, 
-                     const ntvl_REGISTER_t * reg )
-{
+                     const ntvl_REGISTER_t * reg ) {
     int retval=0;
     retval += encode_common( base, idx, common );
     retval += encode_buf( base, idx, reg->cookie, NTVL_COOKIE_SIZE );
     retval += encode_mac( base, idx, reg->srcMac );
     retval += encode_mac( base, idx, reg->dstMac );
-    if ( 0 != reg->sock.family )
-    {
-        retval += encode_sock( base, idx, &(reg->sock) );
-    }
+    if ( 0 != reg->sock.family ) retval += encode_sock( base, idx, &(reg->sock) );
 
     return retval;
 }
@@ -257,18 +229,14 @@ int decode_REGISTER( ntvl_REGISTER_t * reg,
                      const ntvl_common_t * cmn, /* info on how to interpret it */
                      const uint8_t * base,
                      size_t * rem,
-                     size_t * idx )
-{
+                     size_t * idx ) {
     size_t retval=0;
     memset( reg, 0, sizeof(ntvl_REGISTER_t) );
     retval += decode_buf( reg->cookie, NTVL_COOKIE_SIZE, base, rem, idx );
     retval += decode_mac( reg->srcMac, base, rem, idx );
     retval += decode_mac( reg->dstMac, base, rem, idx );
 
-    if ( cmn->flags & NTVL_FLAGS_SOCKET )
-    {
-        retval += decode_sock( &(reg->sock), base, rem, idx );
-    }
+    if ( cmn->flags & NTVL_FLAGS_SOCKET ) retval += decode_sock( &(reg->sock), base, rem, idx );
 
     return retval;
 }
@@ -276,8 +244,7 @@ int decode_REGISTER( ntvl_REGISTER_t * reg,
 int encode_REGISTER_SUPER( uint8_t * base, 
                            size_t * idx,
                            const ntvl_common_t * common, 
-                           const ntvl_REGISTER_SUPER_t * reg )
-{
+                           const ntvl_REGISTER_SUPER_t * reg ) {
     int retval=0;
     retval += encode_common( base, idx, common );
     retval += encode_buf( base, idx, reg->cookie, NTVL_COOKIE_SIZE );
@@ -292,8 +259,7 @@ int decode_REGISTER_SUPER( ntvl_REGISTER_SUPER_t * reg,
                            const ntvl_common_t * cmn, /* info on how to interpret it */
                            const uint8_t * base,
                            size_t * rem,
-                           size_t * idx )
-{
+                           size_t * idx ) {
     size_t retval=0;
     memset( reg, 0, sizeof(ntvl_REGISTER_SUPER_t) );
     retval += decode_buf( reg->cookie, NTVL_COOKIE_SIZE, base, rem, idx );
@@ -307,8 +273,7 @@ int decode_REGISTER_SUPER( ntvl_REGISTER_SUPER_t * reg,
 int encode_REGISTER_ACK( uint8_t * base, 
                          size_t * idx,
                          const ntvl_common_t * common, 
-                         const ntvl_REGISTER_ACK_t * reg )
-{
+                         const ntvl_REGISTER_ACK_t * reg ) {
     int retval=0;
     retval += encode_common( base, idx, common );
     retval += encode_buf( base, idx, reg->cookie, NTVL_COOKIE_SIZE );
@@ -318,10 +283,7 @@ int encode_REGISTER_ACK( uint8_t * base,
     /* The socket in REGISTER_ACK is the socket from which the REGISTER
      * arrived. This is sent back to the sender so it knows what its public
      * socket is. */
-    if ( 0 != reg->sock.family )
-    {
-        retval += encode_sock( base, idx, &(reg->sock) );
-    }
+    if ( 0 != reg->sock.family ) retval += encode_sock( base, idx, &(reg->sock) );
 
     return retval;
 }
@@ -330,8 +292,7 @@ int decode_REGISTER_ACK( ntvl_REGISTER_ACK_t * reg,
                          const ntvl_common_t * cmn, /* info on how to interpret it */
                          const uint8_t * base,
                          size_t * rem,
-                         size_t * idx )
-{
+                         size_t * idx ) {
     size_t retval=0;
     memset( reg, 0, sizeof(ntvl_REGISTER_ACK_t) );
     retval += decode_buf( reg->cookie, NTVL_COOKIE_SIZE, base, rem, idx );
@@ -341,10 +302,7 @@ int decode_REGISTER_ACK( ntvl_REGISTER_ACK_t * reg,
     /* The socket in REGISTER_ACK is the socket from which the REGISTER
      * arrived. This is sent back to the sender so it knows what its public
      * socket is. */
-    if ( cmn->flags & NTVL_FLAGS_SOCKET )
-    {
-        retval += decode_sock( &(reg->sock), base, rem, idx );
-    }
+    if ( cmn->flags & NTVL_FLAGS_SOCKET ) retval += decode_sock( &(reg->sock), base, rem, idx );
 
     return retval;
 }
@@ -352,8 +310,7 @@ int decode_REGISTER_ACK( ntvl_REGISTER_ACK_t * reg,
 int encode_REGISTER_SUPER_ACK( uint8_t * base,
                                size_t * idx,
                                const ntvl_common_t * common,
-                               const ntvl_REGISTER_SUPER_ACK_t * reg )
-{
+                               const ntvl_REGISTER_SUPER_ACK_t * reg ) {
     int retval=0;
     retval += encode_common( base, idx, common );
     retval += encode_buf( base, idx, reg->cookie, NTVL_COOKIE_SIZE );
@@ -361,8 +318,7 @@ int encode_REGISTER_SUPER_ACK( uint8_t * base,
     retval += encode_uint16( base, idx, reg->lifetime );
     retval += encode_sock( base, idx, &(reg->sock) );
     retval += encode_uint8( base, idx, reg->num_sn );
-    if ( reg->num_sn > 0 )
-    {
+    if ( reg->num_sn > 0 ) {
         /* We only support 0 or 1 at this stage */
         retval += encode_sock( base, idx, &(reg->sn_bak) );
     }
@@ -374,8 +330,7 @@ int decode_REGISTER_SUPER_ACK( ntvl_REGISTER_SUPER_ACK_t * reg,
                                const ntvl_common_t * cmn, /* info on how to interpret it */
                                const uint8_t * base,
                                size_t * rem,
-                               size_t * idx )
-{
+                               size_t * idx ) {
     size_t retval=0;
 
     memset( reg, 0, sizeof(ntvl_REGISTER_SUPER_ACK_t) );
@@ -388,8 +343,7 @@ int decode_REGISTER_SUPER_ACK( ntvl_REGISTER_SUPER_ACK_t * reg,
 
     /* Following the edge socket are an array of backup supernodes. */
     retval += decode_uint8( &(reg->num_sn), base, rem, idx );
-    if ( reg->num_sn > 0 )
-    {
+    if ( reg->num_sn > 0 ) {
         /* We only support 0 or 1 at this stage */
         retval += decode_sock( &(reg->sn_bak), base, rem, idx );
     }
@@ -399,14 +353,11 @@ int decode_REGISTER_SUPER_ACK( ntvl_REGISTER_SUPER_ACK_t * reg,
 
 int fill_sockaddr( struct sockaddr * addr, 
                    size_t addrlen, 
-                   const ntvl_sock_t * sock )
-{
+                   const ntvl_sock_t * sock ) {
     int retval=-1;
 
-    if ( AF_INET == sock->family )
-    {
-        if ( addrlen >= sizeof(struct sockaddr_in) )
-        {
+    if ( AF_INET == sock->family ) {
+        if ( addrlen >= sizeof(struct sockaddr_in) ) {
             struct sockaddr_in * si = (struct sockaddr_in *)addr;
             si->sin_family = sock->family;
             si->sin_port = htons( sock->port );
@@ -422,16 +373,12 @@ int fill_sockaddr( struct sockaddr * addr,
 int encode_PACKET( uint8_t * base, 
                    size_t * idx,
                    const ntvl_common_t * common, 
-                   const ntvl_PACKET_t * pkt )
-{
+                   const ntvl_PACKET_t * pkt ) {
     int retval=0;
     retval += encode_common( base, idx, common );
     retval += encode_mac( base, idx, pkt->srcMac );
     retval += encode_mac( base, idx, pkt->dstMac );
-    if ( 0 != pkt->sock.family )
-    {
-        retval += encode_sock( base, idx, &(pkt->sock) );
-    }
+    if ( 0 != pkt->sock.family )  retval += encode_sock( base, idx, &(pkt->sock) );
     retval += encode_uint16( base, idx, pkt->transform );
 
     return retval;
@@ -442,17 +389,13 @@ int decode_PACKET( ntvl_PACKET_t * pkt,
                    const ntvl_common_t * cmn, /* info on how to interpret it */
                    const uint8_t * base,
                    size_t * rem,
-                   size_t * idx )
-{
+                   size_t * idx ) {
     size_t retval=0;
     memset( pkt, 0, sizeof(ntvl_PACKET_t) );
     retval += decode_mac( pkt->srcMac, base, rem, idx );
     retval += decode_mac( pkt->dstMac, base, rem, idx );
 
-    if ( cmn->flags & NTVL_FLAGS_SOCKET )
-    {
-        retval += decode_sock( &(pkt->sock), base, rem, idx );
-    }
+    if ( cmn->flags & NTVL_FLAGS_SOCKET ) retval += decode_sock( &(pkt->sock), base, rem, idx );
 
     retval += decode_uint16( &(pkt->transform), base, rem, idx );
 

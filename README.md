@@ -10,7 +10,7 @@ ntvl network can ping each other) and be reachable with the same network IP addr
 In a nutshell, as OpenVPN moved SSL from application (e.g. used to implement the https protocol) to network protocol, NTVL moves P2P from
 application to network level.
 
-The main n2n design features are:
+The main ntvl design features are:
 
 - An ntvl is an encrypted layer two private network based on a P2P protocol.
 - Encryption is performed on edge nodes using open protocols with user-defined encryption keys:

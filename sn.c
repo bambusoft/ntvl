@@ -1,8 +1,9 @@
-/* Supernode for ntvl-2.x */
+/* Supernode for ntvl-1.0.0 */
 
-/* (c) 2009 Richard Andrews
+/* (c) 2012 Mario Ricardo Rodriguez Somohano
  *
  * Contributions by:
+      Richard Andrews
  *    Lukasz Taczuk
  *    Struan Bartlett
  */
@@ -17,8 +18,7 @@
 #define NTVL_SN_MGMT_PORT                5645
 
 
-struct sn_stats
-{
+struct sn_stats {
     size_t errors;              /* Number of errors encountered. */
     size_t reg_super;           /* Number of REGISTER_SUPER requests received. */
     size_t reg_super_nak;       /* Number of REGISTER_SUPER requests declined. */
@@ -30,8 +30,7 @@ struct sn_stats
 
 typedef struct sn_stats sn_stats_t;
 
-struct ntvl_sn
-{
+struct ntvl_sn {
     time_t              start_time;     /* Used to measure uptime. */
     sn_stats_t          stats;
     int                 daemon;         /* If non-zero then daemonise. */
@@ -44,23 +43,13 @@ struct ntvl_sn
 typedef struct ntvl_sn ntvl_sn_t;
 
 
-static int try_forward( ntvl_sn_t * sss, 
-                        const ntvl_common_t * cmn,
-                        const ntvl_mac_t dstMac,
-                        const uint8_t * pktbuf,
-                        size_t pktsize );
-
-static int try_broadcast( ntvl_sn_t * sss, 
-                          const ntvl_common_t * cmn,
-                          const ntvl_mac_t srcMac,
-                          const uint8_t * pktbuf,
-                          size_t pktsize );
+static int try_forward( ntvl_sn_t * sss, const ntvl_common_t * cmn, const ntvl_mac_t dstMac, const uint8_t * pktbuf, size_t pktsize );
+static int try_broadcast( ntvl_sn_t * sss, const ntvl_common_t * cmn, const ntvl_mac_t srcMac, const uint8_t * pktbuf, size_t pktsize );
 
 
 
 /** Initialise the supernode structure */
-static int init_sn( ntvl_sn_t * sss )
-{
+static int init_sn( ntvl_sn_t * sss ) {
 #ifdef WIN32
     initWin32();
 #endif
@@ -77,18 +66,11 @@ static int init_sn( ntvl_sn_t * sss )
 
 /** Deinitialise the supernode structure and deallocate any memory owned by
  *  it. */
-static void deinit_sn( ntvl_sn_t * sss )
-{
-    if (sss->sock >= 0)
-    {
-        closesocket(sss->sock);
-    }
+static void deinit_sn( ntvl_sn_t * sss ) {
+    if (sss->sock >= 0) closesocket(sss->sock);
     sss->sock=-1;
 
-    if ( sss->mgmt_sock >= 0 )
-    {
-        closesocket(sss->mgmt_sock);
-    }
+    if ( sss->mgmt_sock >= 0 ) closesocket(sss->mgmt_sock);
     sss->mgmt_sock=-1;
 
     purge_peer_list( &(sss->edges), 0xffffffff );
@@ -100,8 +82,7 @@ static void deinit_sn( ntvl_sn_t * sss )
  *  If the supernode has been put into a pre-shutdown phase then this lifetime
  *  should not allow registrations to continue beyond the shutdown point.
  */
-static uint16_t reg_lifetime( ntvl_sn_t * sss )
-{
+static uint16_t reg_lifetime( ntvl_sn_t * sss ) {
     return 120;
 }
 
@@ -112,8 +93,7 @@ static int update_edge( ntvl_sn_t * sss,
                         const ntvl_mac_t edgeMac,
                         const ntvl_community_t community,
                         const ntvl_sock_t * sender_sock,
-                        time_t now)
-{
+                        time_t now) {
     macstr_t            mac_buf;
     ntvl_sock_str_t      sockbuf;
     struct peer_info *  scan;
@@ -124,8 +104,7 @@ static int update_edge( ntvl_sn_t * sss,
 
     scan = find_peer_by_mac( sss->edges, edgeMac );
 
-    if ( NULL == scan )
-    {
+    if ( NULL == scan ) {
         /* Not known */
 
         scan = (struct peer_info*)calloc(1, sizeof(struct peer_info)); /* deallocated in purge_expired_registrations */
@@ -141,22 +120,17 @@ static int update_edge( ntvl_sn_t * sss,
         traceEvent( TRACE_INFO, "update_edge created   %s ==> %s",
                     macaddr_str( mac_buf, edgeMac ),
                     sock_to_cstr( sockbuf, sender_sock ) );
-    }
-    else
-    {
+    } else {
         /* Known */
         if ( (0 != memcmp(community, scan->community_name, sizeof(ntvl_community_t))) ||
-             (0 != sock_equal(sender_sock, &(scan->sock) )) )
-        {
+             (0 != sock_equal(sender_sock, &(scan->sock) )) ) {
             memcpy(scan->community_name, community, sizeof(ntvl_community_t) );
             memcpy(&(scan->sock), sender_sock, sizeof(ntvl_sock_t));
 
             traceEvent( TRACE_INFO, "update_edge updated   %s ==> %s",
                         macaddr_str( mac_buf, edgeMac ),
                         sock_to_cstr( sockbuf, sender_sock ) );
-        }
-        else
-        {
+        } else {
             traceEvent( TRACE_DEBUG, "update_edge unchanged %s ==> %s",
                         macaddr_str( mac_buf, edgeMac ),
                         sock_to_cstr( sockbuf, sender_sock ) );
@@ -176,12 +150,10 @@ static int update_edge( ntvl_sn_t * sss,
 static ssize_t sendto_sock(ntvl_sn_t * sss, 
                            const ntvl_sock_t * sock, 
                            const uint8_t * pktbuf, 
-                           size_t pktsize)
-{
+                           size_t pktsize) {
     ntvl_sock_str_t      sockbuf;
 
-    if ( AF_INET == sock->family )
-    {
+    if ( AF_INET == sock->family ) {
         struct sockaddr_in udpsock;
 
         udpsock.sin_family = AF_INET;
@@ -194,9 +166,7 @@ static ssize_t sendto_sock(ntvl_sn_t * sss,
 
         return sendto( sss->sock, pktbuf, pktsize, 0, 
                        (const struct sockaddr *)&udpsock, sizeof(struct sockaddr_in) );
-    }
-    else
-    {
+    } else {
         /* AF_INET6 not implemented */
         errno = EAFNOSUPPORT;
         return -1;
@@ -212,29 +182,24 @@ static int try_forward( ntvl_sn_t * sss,
                         const ntvl_common_t * cmn,
                         const ntvl_mac_t dstMac,
                         const uint8_t * pktbuf,
-                        size_t pktsize )
-{
+                        size_t pktsize ) {
     struct peer_info *  scan;
     macstr_t            mac_buf;
     ntvl_sock_str_t      sockbuf;
 
     scan = find_peer_by_mac( sss->edges, dstMac );
 
-    if ( NULL != scan )
-    {
+    if ( NULL != scan ) {
         int data_sent_len;
         data_sent_len = sendto_sock( sss, &(scan->sock), pktbuf, pktsize );
 
-        if ( data_sent_len == pktsize )
-        {
+        if ( data_sent_len == pktsize ) {
             ++(sss->stats.fwd);
             traceEvent(TRACE_DEBUG, "unicast %lu to [%s] %s",
                        pktsize,
                        sock_to_cstr( sockbuf, &(scan->sock) ),
                        macaddr_str(mac_buf, scan->mac_addr));
-        }
-        else
-        {
+        } else {
             ++(sss->stats.errors);
             traceEvent(TRACE_ERROR, "unicast %lu to [%s] %s FAILED (%d: %s)",
                        pktsize,
@@ -242,14 +207,8 @@ static int try_forward( ntvl_sn_t * sss,
                        macaddr_str(mac_buf, scan->mac_addr),
                        errno, strerror(errno) );
         }
-    }
-    else
-    {
-        traceEvent( TRACE_DEBUG, "try_forward unknown MAC" );
-
-        /* Not a known MAC so drop. */
-    }
-    
+    } else traceEvent( TRACE_DEBUG, "try_forward unknown MAC" ); /* Not a known MAC so drop. */
+	
     return 0;
 }
 
@@ -263,8 +222,7 @@ static int try_broadcast( ntvl_sn_t * sss,
                           const ntvl_common_t * cmn,
                           const ntvl_mac_t srcMac,
                           const uint8_t * pktbuf,
-                          size_t pktsize )
-{
+                          size_t pktsize ) {
     struct peer_info *  scan;
     macstr_t            mac_buf;
     ntvl_sock_str_t      sockbuf;
@@ -272,27 +230,22 @@ static int try_broadcast( ntvl_sn_t * sss,
     traceEvent( TRACE_DEBUG, "try_broadcast" );
 
     scan = sss->edges;
-    while(scan != NULL) 
-    {
+    while(scan != NULL) {
         if( 0 == (memcmp(scan->community_name, cmn->community, sizeof(ntvl_community_t)) )
-            && (0 != memcmp(srcMac, scan->mac_addr, sizeof(ntvl_mac_t)) ) )
+            && (0 != memcmp(srcMac, scan->mac_addr, sizeof(ntvl_mac_t)) ) ) {
             /* REVISIT: exclude if the destination socket is where the packet came from. */
-        {
             int data_sent_len;
           
             data_sent_len = sendto_sock(sss, &(scan->sock), pktbuf, pktsize);
 
-            if(data_sent_len != pktsize)
-            {
+            if(data_sent_len != pktsize) {
                 ++(sss->stats.errors);
                 traceEvent(TRACE_WARNING, "multicast %lu to [%s] %s failed %s",
                            pktsize,
                            sock_to_cstr( sockbuf, &(scan->sock) ),
                            macaddr_str(mac_buf, scan->mac_addr),
                            strerror(errno));
-            }
-            else 
-            {
+            } else {
                 ++(sss->stats.broadcast);
                 traceEvent(TRACE_DEBUG, "multicast %lu to [%s] %s",
                            pktsize,
@@ -312,58 +265,27 @@ static int process_mgmt( ntvl_sn_t * sss,
                          const struct sockaddr_in * sender_sock,
                          const uint8_t * mgmt_buf, 
                          size_t mgmt_size,
-                         time_t now)
-{
+                         time_t now) {
     char resbuf[NTVL_SN_PKTBUF_SIZE];
     size_t ressize=0;
     ssize_t r;
 
     traceEvent( TRACE_DEBUG, "process_mgmt" );
 
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "----------------\n" );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "----------------\n" );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "uptime    %lu\n", (now - sss->start_time) );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "edges     %u\n", (unsigned int)peer_list_size( sss->edges ) );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "errors    %u\n", (unsigned int)sss->stats.errors );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "reg_sup   %u\n", (unsigned int)sss->stats.reg_super );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "reg_nak   %u\n", (unsigned int)sss->stats.reg_super_nak );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "fwd       %u\n", (unsigned int)sss->stats.fwd );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "broadcast %u\n", (unsigned int)sss->stats.broadcast );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "last fwd  %lu sec ago\n", (long unsigned int)(now - sss->stats.last_fwd) );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "last reg  %lu sec ago\n", (long unsigned int) (now - sss->stats.last_reg_super) );
 
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "uptime    %lu\n", (now - sss->start_time) );
+    r = sendto( sss->mgmt_sock, resbuf, ressize, 0/*flags*/, (struct sockaddr *)sender_sock, sizeof(struct sockaddr_in) );
 
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "edges     %u\n", 
-			 (unsigned int)peer_list_size( sss->edges ) );
-
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "errors    %u\n", 
-			 (unsigned int)sss->stats.errors );
-
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "reg_sup   %u\n", 
-			 (unsigned int)sss->stats.reg_super );
-
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "reg_nak   %u\n", 
-			 (unsigned int)sss->stats.reg_super_nak );
-
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "fwd       %u\n",
-			 (unsigned int) sss->stats.fwd );
-
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "broadcast %u\n",
-			 (unsigned int) sss->stats.broadcast );
-
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "last fwd  %lu sec ago\n", 
-			 (long unsigned int)(now - sss->stats.last_fwd) );
-
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, 
-                         "last reg  %lu sec ago\n",
-			 (long unsigned int) (now - sss->stats.last_reg_super) );
-
-
-    r = sendto( sss->mgmt_sock, resbuf, ressize, 0/*flags*/, 
-                (struct sockaddr *)sender_sock, sizeof(struct sockaddr_in) );
-
-    if ( r <= 0 )
-    {
+    if ( r <= 0 ) {
         ++(sss->stats.errors);
         traceEvent( TRACE_ERROR, "process_mgmt : sendto failed. %s", strerror(errno) );
     }
@@ -379,8 +301,7 @@ static int process_udp( ntvl_sn_t * sss,
                         const struct sockaddr_in * sender_sock,
                         const uint8_t * udp_buf, 
                         size_t udp_size,
-                        time_t now)
-{
+                        time_t now) {
     ntvl_common_t        cmn; /* common fields in the packet header */
     size_t              rem;
     size_t              idx;
@@ -404,8 +325,7 @@ static int process_udp( ntvl_sn_t * sss,
 
     rem = udp_size; /* Counts down bytes of packet to protect against buffer overruns. */
     idx = 0; /* marches through packet header as parts are decoded. */
-    if ( decode_common(&cmn, udp_buf, &rem, &idx) < 0 )
-    {
+    if ( decode_common(&cmn, udp_buf, &rem, &idx) < 0 ) {
         traceEvent( TRACE_ERROR, "Failed to decode common section" );
         return -1; /* failed to decode packet */
     }
@@ -413,16 +333,14 @@ static int process_udp( ntvl_sn_t * sss,
     msg_type = cmn.pc; /* packet code */
     from_supernode= cmn.flags & NTVL_FLAGS_FROM_SUPERNODE;
 
-    if ( cmn.ttl < 1 )
-    {
+    if ( cmn.ttl < 1 ) {
         traceEvent( TRACE_WARNING, "Expired TTL" );
         return 0; /* Don't process further */
     }
 
     --(cmn.ttl); /* The value copied into all forwarded packets. */
 
-    if ( msg_type == MSG_TYPE_PACKET )
-    {
+    if ( msg_type == MSG_TYPE_PACKET ) {
         /* PACKET from one edge to another edge via supernode. */
 
         /* pkt will be modified in place and recoded to an output of potentially
@@ -446,8 +364,7 @@ static int process_udp( ntvl_sn_t * sss,
                     macaddr_str( mac_buf2, pkt.dstMac ),
                     (from_supernode?"from sn":"local") );
 
-        if ( !from_supernode )
-        {
+        if ( !from_supernode ) {
             memcpy( &cmn2, &cmn, sizeof( ntvl_common_t ) );
 
             /* We are going to add socket even if it was not there before */
@@ -464,9 +381,7 @@ static int process_udp( ntvl_sn_t * sss,
 
             /* Copy the original payload unchanged */
             encode_buf( encbuf, &encx, (udp_buf + idx), (udp_size - idx ) );
-        }
-        else
-        {
+        } else {
             /* Already from a supernode. Nothing to modify, just pass to
              * destination. */
 
@@ -477,17 +392,9 @@ static int process_udp( ntvl_sn_t * sss,
         }
 
         /* Common section to forward the final product. */
-        if ( unicast )
-        {
-            try_forward( sss, &cmn, pkt.dstMac, rec_buf, encx );
-        }
-        else
-        {
-            try_broadcast( sss, &cmn, pkt.srcMac, rec_buf, encx );
-        }
-    }/* MSG_TYPE_PACKET */
-    else if ( msg_type == MSG_TYPE_REGISTER )
-    {
+        if ( unicast ) try_forward( sss, &cmn, pkt.dstMac, rec_buf, encx );
+        else try_broadcast( sss, &cmn, pkt.srcMac, rec_buf, encx );
+    } else if ( msg_type == MSG_TYPE_REGISTER ) { /* MSG_TYPE_PACKET */
         /* Forwarding a REGISTER from one edge to the next */
 
         ntvl_REGISTER_t                  reg;
@@ -502,15 +409,13 @@ static int process_udp( ntvl_sn_t * sss,
 
         unicast = (0 == is_multi_broadcast(reg.dstMac) );
         
-        if ( unicast )
-        {
+        if ( unicast ) {
         traceEvent( TRACE_DEBUG, "Rx REGISTER %s -> %s %s",
                     macaddr_str( mac_buf, reg.srcMac ),
                     macaddr_str( mac_buf2, reg.dstMac ),
                     ((cmn.flags & NTVL_FLAGS_FROM_SUPERNODE)?"from sn":"local") );
 
-        if ( 0 != (cmn.flags & NTVL_FLAGS_FROM_SUPERNODE) )
-        {
+        if ( 0 != (cmn.flags & NTVL_FLAGS_FROM_SUPERNODE) ) {
             memcpy( &cmn2, &cmn, sizeof( ntvl_common_t ) );
 
             /* We are going to add socket even if it was not there before */
@@ -527,9 +432,7 @@ static int process_udp( ntvl_sn_t * sss,
 
             /* Copy the original payload unchanged */
             encode_buf( encbuf, &encx, (udp_buf + idx), (udp_size - idx ) );
-        }
-        else
-        {
+        } else {
             /* Already from a supernode. Nothing to modify, just pass to
              * destination. */
 
@@ -538,19 +441,10 @@ static int process_udp( ntvl_sn_t * sss,
         }
 
         try_forward( sss, &cmn, reg.dstMac, rec_buf, encx ); /* unicast only */
-        }
-        else
-        {
-            traceEvent( TRACE_ERROR, "Rx REGISTER with multicast destination" );
-        }
-
+        } else traceEvent( TRACE_ERROR, "Rx REGISTER with multicast destination" );
     }
-    else if ( msg_type == MSG_TYPE_REGISTER_ACK )
-    {
-        traceEvent( TRACE_DEBUG, "Rx REGISTER_ACK (NOT IMPLEMENTED) SHould not be via supernode" );
-    }
-    else if ( msg_type == MSG_TYPE_REGISTER_SUPER )
-    {
+    else if ( msg_type == MSG_TYPE_REGISTER_ACK ) traceEvent( TRACE_DEBUG, "Rx REGISTER_ACK (NOT IMPLEMENTED) SHould not be via supernode" );
+    else if ( msg_type == MSG_TYPE_REGISTER_SUPER ) {
         ntvl_REGISTER_SUPER_t            reg;
         ntvl_REGISTER_SUPER_ACK_t        ack;
         ntvl_common_t                    cmn2;
@@ -602,8 +496,7 @@ static int process_udp( ntvl_sn_t * sss,
 
 
 /** Help message to print if the command line arguments are not valid. */
-static void exit_help(int argc, char * const argv[])
-{
+static void exit_help(int argc, char * const argv[]) {
     fprintf( stderr, "%s usage\n", argv[0] );
     fprintf( stderr, "-l <lport>\tSet UDP main listen port to <lport>\n" );
 
@@ -629,8 +522,7 @@ static const struct option long_options[] = {
 };
 
 /** Main program entry point from kernel. */
-int main( int argc, char * const argv[] )
-{
+int main( int argc, char * const argv[] ) {
     ntvl_sn_t sss;
 
     init_sn( &sss );
@@ -638,10 +530,8 @@ int main( int argc, char * const argv[] )
     {
         int opt;
 
-        while((opt = getopt_long(argc, argv, "fl:vh", long_options, NULL)) != -1) 
-        {
-            switch (opt) 
-            {
+        while((opt = getopt_long(argc, argv, "fl:vh", long_options, NULL)) != -1) {
+            switch (opt) {
             case 'l': /* local-port */
                 sss.lport = atoi(optarg);
                 break;
@@ -660,11 +550,9 @@ int main( int argc, char * const argv[] )
     }
 
 #if defined(NTVL_HAVE_DAEMON)
-    if (sss.daemon)
-    {
+    if (sss.daemon) {
         useSyslog=1; /* traceEvent output now goes to syslog. */
-        if ( -1 == daemon( 0, 0 ) )
-        {
+        if ( -1 == daemon( 0, 0 ) ) {
             traceEvent( TRACE_ERROR, "Failed to become daemon." );
             exit(-5);
         }
@@ -674,26 +562,16 @@ int main( int argc, char * const argv[] )
     traceEvent( TRACE_DEBUG, "traceLevel is %d", traceLevel);
 
     sss.sock = open_socket(sss.lport, 1 /*bind ANY*/ );
-    if ( -1 == sss.sock )
-    {
+    if ( -1 == sss.sock ) {
         traceEvent( TRACE_ERROR, "Failed to open main socket. %s", strerror(errno) );
         exit(-2);
-    }
-    else
-    {
-        traceEvent( TRACE_NORMAL, "supernode is listening on UDP %u (main)", sss.lport );
-    }
+    } else  traceEvent( TRACE_NORMAL, "supernode is listening on UDP %u (main)", sss.lport );
 
     sss.mgmt_sock = open_socket(NTVL_SN_MGMT_PORT, 0 /* bind LOOPBACK */ );
-    if ( -1 == sss.mgmt_sock )
-    {
+    if ( -1 == sss.mgmt_sock ) {
         traceEvent( TRACE_ERROR, "Failed to open management socket. %s", strerror(errno) );
         exit(-2);
-    }
-    else
-    {
-        traceEvent( TRACE_NORMAL, "supernode is listening on UDP %u (management)", NTVL_SN_MGMT_PORT );
-    }
+    } else traceEvent( TRACE_NORMAL, "supernode is listening on UDP %u (management)", NTVL_SN_MGMT_PORT );
 
     traceEvent(TRACE_NORMAL, "supernode started");
 
@@ -703,15 +581,13 @@ int main( int argc, char * const argv[] )
 
 /** Long lived processing entry point. Split out from main to simply
  *  daemonisation on some platforms. */
-static int run_loop( ntvl_sn_t * sss )
-{
+static int run_loop( ntvl_sn_t * sss ) {
     uint8_t pktbuf[NTVL_SN_PKTBUF_SIZE];
     int keep_running=1;
 
     sss->start_time = time(NULL);
 
-    while(keep_running) 
-    {
+    while(keep_running) {
         int rc;
         ssize_t bread;
         int max_sock;
@@ -730,10 +606,8 @@ static int run_loop( ntvl_sn_t * sss )
 
         now = time(NULL);
 
-        if(rc > 0) 
-        {
-            if (FD_ISSET(sss->sock, &socket_mask)) 
-            {
+        if(rc > 0) {
+            if (FD_ISSET(sss->sock, &socket_mask)) {
                 struct sockaddr_in  sender_sock;
                 socklen_t           i;
 
@@ -741,8 +615,7 @@ static int run_loop( ntvl_sn_t * sss )
                 bread = recvfrom( sss->sock, pktbuf, NTVL_SN_PKTBUF_SIZE, 0/*flags*/,
 				  (struct sockaddr *)&sender_sock, (socklen_t*)&i);
 
-                if ( bread < 0 ) /* For UDP bread of zero just means no data (unlike TCP). */
-                {
+                if ( bread < 0 ) { /* For UDP bread of zero just means no data (unlike TCP). */
                     /* The fd is no good now. Maybe we lost our interface. */
                     traceEvent( TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno) );
                     keep_running=0;
@@ -750,15 +623,13 @@ static int run_loop( ntvl_sn_t * sss )
                 }
 
                 /* We have a datagram to process */
-                if ( bread > 0 )
-                {
+                if ( bread > 0 ) {
                     /* And the datagram has data (not just a header) */
                     process_udp( sss, &sender_sock, pktbuf, bread, now );
                 }
             }
 
-            if (FD_ISSET(sss->mgmt_sock, &socket_mask)) 
-            {
+            if (FD_ISSET(sss->mgmt_sock, &socket_mask)) {
                 struct sockaddr_in  sender_sock;
                 size_t              i;
 
@@ -766,8 +637,7 @@ static int run_loop( ntvl_sn_t * sss )
                 bread = recvfrom( sss->mgmt_sock, pktbuf, NTVL_SN_PKTBUF_SIZE, 0/*flags*/,
 				  (struct sockaddr *)&sender_sock, (socklen_t*)&i);
 
-                if ( bread <= 0 )
-                {
+                if ( bread <= 0 ) {
                     traceEvent( TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno) );
                     keep_running=0;
                     break;
@@ -776,11 +646,7 @@ static int run_loop( ntvl_sn_t * sss )
                 /* We have a datagram to process */
                 process_mgmt( sss, &sender_sock, pktbuf, bread, now );
             }
-        }
-        else
-        {
-            traceEvent( TRACE_DEBUG, "timeout" );
-        }
+        } else traceEvent( TRACE_DEBUG, "timeout" );
 
         purge_expired_registrations( &(sss->edges) );
 

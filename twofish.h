@@ -66,8 +66,8 @@ typedef uint8_t  uint8_t;
 #define TwoFish_DEFAULT_PW_LEN		32
 #define TwoFish_MAGIC			"TwoFish"			/* to indentify a successful decryption */
 
-enum
-{	TwoFish_KEY_SIZE = 256,                         /* Valid values: 64, 128, 192, 256 */
+enum {
+	TwoFish_KEY_SIZE = 256, /* Valid values: 64, 128, 192, 256 */
 							/* User 256, other key sizes have not been tested. */
 							/* (But should work. I substitutes as much as */
 							/* I could with this define.) */
@@ -108,8 +108,7 @@ enum
 
 /* Global data structure for callers */
 
-typedef struct    
-{
+typedef struct  {
     uint32_t sBox[4 * 256];                    /* Key dependent S-box */
     uint32_t subKeys[TwoFish_TOTAL_SUBKEYS];   /* Subkeys  */
     uint8_t key[TwoFish_KEY_LENGTH];           /* Encryption Key */
@@ -117,8 +116,8 @@ typedef struct
     uint8_t qBlockPlain[TwoFish_BLOCK_SIZE];   /* Used by CBC */
     uint8_t qBlockCrypt[TwoFish_BLOCK_SIZE];
     uint8_t prevCipher[TwoFish_BLOCK_SIZE];
-    struct                                      /* Header for crypt functions. Has to be at least one block long. */
-    {   uint32_t salt;                         /* Random salt in first block (will salt the rest through CBC) */
+    struct {                                   /* Header for crypt functions. Has to be at least one block long. */
+		uint32_t salt;                         /* Random salt in first block (will salt the rest through CBC) */
         uint8_t length[4];                     /* The amount of data following the header */
         uint8_t magic[TwoFish_MAGIC_LEN];      /* Magic to identify successful decryption  */
     }   header; 

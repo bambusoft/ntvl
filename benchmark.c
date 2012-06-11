@@ -28,8 +28,7 @@ uint8_t PKT_CONTENT[]={
 /* Prototypes */
 static ssize_t do_encode_packet( uint8_t * pktbuf, size_t bufsize, const ntvl_community_t c );
 
-int main( int argc, char * argv[] )
-{
+int main( int argc, char * argv[] ) {
     uint8_t pktbuf[NTVL_PKT_BUF_SIZE];
     ntvl_trans_op_t transop_null;
 
@@ -54,8 +53,7 @@ int main( int argc, char * argv[] )
     memcpy( c, "abc123def456", 12 );
 
     gettimeofday( &t1, NULL );
-    for(i=0; i<n; ++i)
-    {
+    for(i=0; i<n; ++i) {
         nw = do_encode_packet( pktbuf, NTVL_PKT_BUF_SIZE, c);
 
         nw += transop_null.fwd( &transop_null,
@@ -68,8 +66,7 @@ int main( int argc, char * argv[] )
         decode_common( &cmn, pktbuf, &rem, &idx);
         decode_PACKET( &pkt, &cmn, pktbuf, &rem, &idx );
 
-        if ( 0 == (i%1000) )
-        {
+        if ( 0 == (i%1000) ) {
             fprintf(stderr,".");
         }
     }
@@ -82,13 +79,11 @@ int main( int argc, char * argv[] )
     return 0;
 }
 
-static ssize_t do_encode_packet( uint8_t * pktbuf, size_t bufsize, const ntvl_community_t c )
-{
+static ssize_t do_encode_packet( uint8_t * pktbuf, size_t bufsize, const ntvl_community_t c ) {
     ntvl_mac_t destMac={0,1,2,3,4,5};
     ntvl_common_t cmn;
     ntvl_PACKET_t pkt;
     size_t idx;
-
 
     memset( &cmn, 0, sizeof(cmn) );
     cmn.ttl = NTVL_DEFAULT_TTL;

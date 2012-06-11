@@ -12,8 +12,7 @@
 
 #define NTVL_TWOFISH_TRANSFORM_VERSION   1  /* version of the transform encoding */
 
-struct sa_twofish
-{
+struct sa_twofish {
     ntvl_cipherspec_t    spec;   /* cipher spec parameters */
     ntvl_sa_t            sa_id;  /* security association index */
     TWOFISH *           enc_tf; /* tx state */
@@ -30,8 +29,7 @@ typedef struct sa_twofish sa_twofish_t;
  *  consists of the SA number and key material.
  *
  */
-struct transop_tf
-{
+struct transop_tf {
     ssize_t             tx_sa;
     size_t              num_sa;
     sa_twofish_t        sa[NTVL_TWOFISH_NUM_SA];
@@ -39,16 +37,13 @@ struct transop_tf
 
 typedef struct transop_tf transop_tf_t;
 
-static int transop_deinit_twofish( ntvl_trans_op_t * arg )
-{
+static int transop_deinit_twofish( ntvl_trans_op_t * arg ) {
     transop_tf_t * priv = (transop_tf_t *)arg->priv;
     size_t i;
 
-    if ( priv )
-    {
+    if ( priv ) {
         /* Memory was previously allocated */
-        for (i=0; i<NTVL_TWOFISH_NUM_SA; ++i )
-        {
+        for (i=0; i<NTVL_TWOFISH_NUM_SA; ++i ) {
             sa_twofish_t * sa = &(priv->sa[i]);
 
             TwoFishDestroy(sa->enc_tf); /* deallocate TWOFISH */
@@ -71,8 +66,7 @@ static int transop_deinit_twofish( ntvl_trans_op_t * arg )
     return 0;
 }
 
-static size_t tf_choose_tx_sa( transop_tf_t * priv )
-{
+static size_t tf_choose_tx_sa( transop_tf_t * priv ) {
     return priv->tx_sa; /* set in tick */
 }
 
@@ -93,17 +87,14 @@ static int transop_encode_twofish( ntvl_trans_op_t * arg,
                                    uint8_t * outbuf,
                                    size_t out_len,
                                    const uint8_t * inbuf,
-                                   size_t in_len )
-{
+                                   size_t in_len ) {
     int len=-1;
     transop_tf_t * priv = (transop_tf_t *)arg->priv;
     uint8_t assembly[NTVL_PKT_BUF_SIZE];
     uint32_t * pnonce;
 
-    if ( (in_len + TRANSOP_TF_NONCE_SIZE) <= NTVL_PKT_BUF_SIZE )
-    {
-        if ( (in_len + TRANSOP_TF_NONCE_SIZE + TRANSOP_TF_SA_SIZE + TRANSOP_TF_VER_SIZE) <= out_len )
-        {
+    if ( (in_len + TRANSOP_TF_NONCE_SIZE) <= NTVL_PKT_BUF_SIZE ) {
+        if ( (in_len + TRANSOP_TF_NONCE_SIZE + TRANSOP_TF_SA_SIZE + TRANSOP_TF_VER_SIZE) <= out_len ) {
             size_t idx=0;
             sa_twofish_t * sa;
             size_t tx_sa_num = 0;
@@ -133,25 +124,10 @@ static int transop_encode_twofish( ntvl_trans_op_t * arg,
                                      outbuf + TRANSOP_TF_VER_SIZE + TRANSOP_TF_SA_SIZE, 
                                      in_len + TRANSOP_TF_NONCE_SIZE, /* enc size */
                                      sa->enc_tf);
-            if ( len > 0 )
-            {
-                len += TRANSOP_TF_VER_SIZE + TRANSOP_TF_SA_SIZE; /* size of data carried in UDP. */
-            }
-            else
-            {
-                traceEvent( TRACE_ERROR, "encode_twofish encryption failed." );
-            }
-
-        }
-        else
-        {
-            traceEvent( TRACE_ERROR, "encode_twofish outbuf too small." );
-        }
-    }
-    else
-    {
-        traceEvent( TRACE_ERROR, "encode_twofish inbuf too big to encrypt." );
-    }
+            if ( len > 0 ) len += TRANSOP_TF_VER_SIZE + TRANSOP_TF_SA_SIZE; /* size of data carried in UDP. */
+            else traceEvent( TRACE_ERROR, "encode_twofish encryption failed." );
+        } else traceEvent( TRACE_ERROR, "encode_twofish outbuf too small." );
+    } else traceEvent( TRACE_ERROR, "encode_twofish inbuf too big to encrypt." );
 
     return len;
 }
@@ -161,19 +137,14 @@ static int transop_encode_twofish( ntvl_trans_op_t * arg,
  *
  * @return array index where found or -1 if not found
  */
-static ssize_t twofish_find_sa( const transop_tf_t * priv, const ntvl_sa_t req_id )
-{
+static ssize_t twofish_find_sa( const transop_tf_t * priv, const ntvl_sa_t req_id ) {
     size_t i;
     
-    for (i=0; i < priv->num_sa; ++i)
-    {
+    for (i=0; i < priv->num_sa; ++i) {
         const sa_twofish_t * sa=NULL;
 
         sa = &(priv->sa[i]);
-        if (req_id == sa->sa_id)
-        {
-            return i;
-        }
+        if (req_id == sa->sa_id) return i;
     }
 
     return -1;
@@ -193,16 +164,14 @@ static int transop_decode_twofish( ntvl_trans_op_t * arg,
                                    uint8_t * outbuf,
                                    size_t out_len,
                                    const uint8_t * inbuf,
-                                   size_t in_len )
-{
+                                   size_t in_len ) {
     int len=0;
     transop_tf_t * priv = (transop_tf_t *)arg->priv;
     uint8_t assembly[NTVL_PKT_BUF_SIZE];
 
     if ( ( (in_len - (TRANSOP_TF_VER_SIZE + TRANSOP_TF_SA_SIZE)) <= NTVL_PKT_BUF_SIZE ) /* Cipher text fits in assembly */ 
-         && (in_len >= (TRANSOP_TF_VER_SIZE + TRANSOP_TF_SA_SIZE + TRANSOP_TF_NONCE_SIZE) ) /* Has at least version, SA and nonce */
-        )
-    {
+         && (in_len >= (TRANSOP_TF_VER_SIZE + TRANSOP_TF_SA_SIZE + TRANSOP_TF_NONCE_SIZE) ) ) { /* Has at least version, SA and nonce */
+
         ntvl_sa_t sa_rx;
         ssize_t sa_idx=-1;
         size_t rem=in_len;
@@ -212,14 +181,12 @@ static int transop_decode_twofish( ntvl_trans_op_t * arg,
         /* Get the encoding version to make sure it is supported */
         decode_uint8( &tf_enc_ver, inbuf, &rem, &idx );
 
-        if ( NTVL_TWOFISH_TRANSFORM_VERSION == tf_enc_ver )
-        {
+        if ( NTVL_TWOFISH_TRANSFORM_VERSION == tf_enc_ver ) {
             /* Get the SA number and make sure we are decrypting with the right one. */
             decode_uint32( &sa_rx, inbuf, &rem, &idx );
 
             sa_idx = twofish_find_sa(priv, sa_rx);
-            if ( sa_idx >= 0 )
-            {
+            if ( sa_idx >= 0 ) {
                 sa_twofish_t * sa = &(priv->sa[sa_idx]);
 
                 traceEvent( TRACE_DEBUG, "decode_twofish %lu with SA %lu.", in_len, sa_rx, sa->sa_id );
@@ -229,59 +196,42 @@ static int transop_decode_twofish( ntvl_trans_op_t * arg,
                                          (in_len - (TRANSOP_TF_VER_SIZE + TRANSOP_TF_SA_SIZE)), 
                                          sa->dec_tf);
 
-                if ( len > 0 )
-                {
+                if ( len > 0 ) {
                     /* Step over 4-byte random nonce value */
                     len -= TRANSOP_TF_NONCE_SIZE; /* size of ethernet packet */
 
                     memcpy( outbuf, 
                             assembly + TRANSOP_TF_NONCE_SIZE, 
                             len );
-                }
-                else
-                {
-                    traceEvent( TRACE_ERROR, "decode_twofish decryption failed." );
-                }
-
-            }
-            else
-            {
+                } else traceEvent( TRACE_ERROR, "decode_twofish decryption failed." );
+            } else {
                 /* Wrong security association; drop the packet as it is undecodable. */
                 traceEvent( TRACE_ERROR, "decode_twofish SA number %lu not found.", sa_rx );
 
                 /* REVISIT: should be able to load a new SA at this point to complete the decoding. */
             }
-        }
-        else
-        {
+        } else {
             /* Wrong security association; drop the packet as it is undecodable. */
             traceEvent( TRACE_ERROR, "decode_twofish unsupported twofish version %u.", tf_enc_ver );
 
             /* REVISIT: should be able to load a new SA at this point to complete the decoding. */
         }        
-    }
-    else
-    {
-        traceEvent( TRACE_ERROR, "decode_twofish inbuf wrong size (%ul) to decrypt.", in_len );
-    }
+    } else traceEvent( TRACE_ERROR, "decode_twofish inbuf wrong size (%ul) to decrypt.", in_len );
 
     return len;
 }
 
-static int transop_addspec_twofish( ntvl_trans_op_t * arg, const ntvl_cipherspec_t * cspec )
-{
+static int transop_addspec_twofish( ntvl_trans_op_t * arg, const ntvl_cipherspec_t * cspec ) {
     int retval = 1;
     ssize_t pstat=-1;
     transop_tf_t * priv = (transop_tf_t *)arg->priv;
     uint8_t keybuf[NTVL_MAX_KEYSIZE];
 
-    if ( priv->num_sa < NTVL_TWOFISH_NUM_SA )
-    {
+    if ( priv->num_sa < NTVL_TWOFISH_NUM_SA ) {
         const char * op = (const char *)cspec->opaque;
         const char * sep = index( op, '_' );
 
-        if ( sep )
-        {
+        if ( sep ) {
             char tmp[256];
             size_t s;
             
@@ -295,8 +245,7 @@ static int transop_addspec_twofish( ntvl_trans_op_t * arg, const ntvl_cipherspec
             priv->sa[priv->num_sa].sa_id = strtoul(tmp, NULL, 10);
 
             pstat = ntvl_parse_hex( keybuf, NTVL_MAX_KEYSIZE, sep+1, s );
-            if ( pstat > 0 )
-            {
+            if ( pstat > 0 ) {
                 priv->sa[priv->num_sa].enc_tf = TwoFishInit( keybuf, pstat);
                 priv->sa[priv->num_sa].dec_tf = TwoFishInit( keybuf, pstat);
                 
@@ -306,23 +255,14 @@ static int transop_addspec_twofish( ntvl_trans_op_t * arg, const ntvl_cipherspec
                 ++(priv->num_sa);
                 retval = 0;
             }
-        }
-        else
-        {
-            traceEvent( TRACE_ERROR, "transop_addspec_twofish : bad key data - missing '_'.\n");
-        }
-    }
-    else
-    {
-        traceEvent( TRACE_ERROR, "transop_addspec_twofish : full.\n");
-    }
+        } else traceEvent( TRACE_ERROR, "transop_addspec_twofish : bad key data - missing '_'.\n");
+    } else traceEvent( TRACE_ERROR, "transop_addspec_twofish : full.\n");
     
     return retval;
 }
 
 
-static ntvl_tostat_t transop_tick_twofish( ntvl_trans_op_t * arg, time_t now )
-{
+static ntvl_tostat_t transop_tick_twofish( ntvl_trans_op_t * arg, time_t now ) {
     transop_tf_t * priv = (transop_tf_t *)arg->priv;
     size_t i;
     int found=0;
@@ -332,30 +272,19 @@ static ntvl_tostat_t transop_tick_twofish( ntvl_trans_op_t * arg, time_t now )
 
     traceEvent( TRACE_DEBUG, "transop_tf tick num_sa=%u", priv->num_sa );
 
-    for ( i=0; i < priv->num_sa; ++i )
-    {
-        if ( 0 == validCipherSpec( &(priv->sa[i].spec), now ) )
-        {
+    for ( i=0; i < priv->num_sa; ++i ) {
+        if ( 0 == validCipherSpec( &(priv->sa[i].spec), now ) ) {
             time_t remaining = priv->sa[i].spec.valid_until - now;
 
             traceEvent( TRACE_INFO, "transop_tf choosing tx_sa=%u (valid for %lu sec)", priv->sa[i].sa_id, remaining );
             priv->tx_sa=i;
             found=1;
             break;
-        }
-        else
-        {
-            traceEvent( TRACE_DEBUG, "transop_tf tick rejecting sa=%u  %lu -> %lu", 
-                        priv->sa[i].sa_id, priv->sa[i].spec.valid_from, priv->sa[i].spec.valid_until );
-        }
+        } else traceEvent( TRACE_DEBUG, "transop_tf tick rejecting sa=%u  %lu -> %lu", priv->sa[i].sa_id, priv->sa[i].spec.valid_from, priv->sa[i].spec.valid_until );
     }
 
-    if ( 0==found)
-    {
-        traceEvent( TRACE_INFO, "transop_tf no keys are currently valid. Keeping tx_sa=%u", priv->tx_sa );
-    }
-    else
-    {
+    if ( 0==found)  traceEvent( TRACE_INFO, "transop_tf no keys are currently valid. Keeping tx_sa=%u", priv->tx_sa );
+    else {
         r.can_tx = 1;
         r.tx_spec.t = NTVL_TRANSFORM_ID_TWOFISH;
         r.tx_spec = priv->sa[priv->tx_sa].spec;
@@ -368,30 +297,24 @@ static ntvl_tostat_t transop_tick_twofish( ntvl_trans_op_t * arg, time_t now )
 int transop_twofish_setup( ntvl_trans_op_t * ttt, 
                            ntvl_sa_t sa_num,
                            uint8_t * encrypt_pwd, 
-                           uint32_t encrypt_pwd_len )
-{
+                           uint32_t encrypt_pwd_len ) {
     int retval = 1;
     transop_tf_t * priv = NULL;
 
-    if ( ttt->priv )
-    {
-        transop_deinit_twofish( ttt );
-    }
+    if ( ttt->priv ) transop_deinit_twofish( ttt );
 
     memset( ttt, 0, sizeof( ntvl_trans_op_t ) );
 
     priv = (transop_tf_t *) malloc( sizeof(transop_tf_t) );
 
-    if ( NULL != priv )
-    {
+    if ( NULL != priv ) {
         size_t i;
         sa_twofish_t * sa=NULL;
 
         /* install the private structure. */
         ttt->priv = priv;
 
-        for(i=0; i<NTVL_TWOFISH_NUM_SA; ++i)
-        {
+        for(i=0; i<NTVL_TWOFISH_NUM_SA; ++i) {
             sa = &(priv->sa[i]);
             sa->sa_id=0;
             memset( &(sa->spec), 0, sizeof(ntvl_cipherspec_t) );
@@ -410,8 +333,7 @@ int transop_twofish_setup( ntvl_trans_op_t * ttt,
         sa->enc_tf = TwoFishInit(encrypt_pwd, encrypt_pwd_len);
         sa->dec_tf = TwoFishInit(encrypt_pwd, encrypt_pwd_len);
 
-        if ( (sa->enc_tf) && (sa->dec_tf) )
-        {
+        if ( (sa->enc_tf) && (sa->dec_tf) ) {
             ttt->transform_id = NTVL_TRANSFORM_ID_TWOFISH;
             ttt->deinit = transop_deinit_twofish;
             ttt->addspec = transop_addspec_twofish;
@@ -420,14 +342,8 @@ int transop_twofish_setup( ntvl_trans_op_t * ttt,
             ttt->rev = transop_decode_twofish;
                 
             retval = 0;
-        }
-        else
-        {
-            traceEvent( TRACE_ERROR, "TwoFishInit failed" );
-        }
-    }
-    else
-    {
+        } else traceEvent( TRACE_ERROR, "TwoFishInit failed" );
+    } else {
         memset( ttt, 0, sizeof(ntvl_trans_op_t) );
         traceEvent( TRACE_ERROR, "Failed to allocate priv for twofish" );
     }
@@ -435,22 +351,17 @@ int transop_twofish_setup( ntvl_trans_op_t * ttt,
     return retval;
 }
 
-int transop_twofish_init( ntvl_trans_op_t * ttt )
-{
+int transop_twofish_init( ntvl_trans_op_t * ttt ) {
     int retval = 1;
     transop_tf_t * priv = NULL;
 
-    if ( ttt->priv )
-    {
-        transop_deinit_twofish( ttt );
-    }
+    if ( ttt->priv ) transop_deinit_twofish( ttt );
 
     memset( ttt, 0, sizeof( ntvl_trans_op_t ) );
 
     priv = (transop_tf_t *) malloc( sizeof(transop_tf_t) );
 
-    if ( NULL != priv )
-    {
+    if ( NULL != priv ) {
         size_t i;
         sa_twofish_t * sa=NULL;
 
@@ -466,8 +377,7 @@ int transop_twofish_init( ntvl_trans_op_t * ttt )
         ttt->fwd = transop_encode_twofish;
         ttt->rev = transop_decode_twofish;
 
-        for(i=0; i<NTVL_TWOFISH_NUM_SA; ++i)
-        {
+        for(i=0; i<NTVL_TWOFISH_NUM_SA; ++i) {
             sa = &(priv->sa[i]);
             sa->sa_id=0;
             memset( &(sa->spec), 0, sizeof(ntvl_cipherspec_t) );
@@ -476,9 +386,7 @@ int transop_twofish_init( ntvl_trans_op_t * ttt )
         }
 
         retval = 0;
-    }
-    else
-    {
+    } else {
         memset( ttt, 0, sizeof(ntvl_trans_op_t) );
         traceEvent( TRACE_ERROR, "Failed to allocate priv for twofish" );
     }

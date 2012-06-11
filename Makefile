@@ -1,11 +1,15 @@
 
-NTVL_VERSION=2.1.0
+NTVL_VERSION=1.0.0
 NTVL_OSNAME=$(shell uname -p)
 
 ########
 
 CC=gcc
 DEBUG?=-g3
+
+#OPTIONS=static
+OPTIONS=
+
 #OPTIMIZATION?=-O2
 WARN?=-Wall -Wshadow -Wpointer-arith -Wmissing-declarations -Wnested-externs
 
@@ -59,9 +63,9 @@ endif
 APPS=edge
 APPS+=supernode
 
-DOCS=edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
+MANFILES=edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
 
-all: $(APPS) $(DOCS)
+all: $(APPS) $(MANFILES)
 
 edge: edge.c $(NTVL_LIB) ntvl_wire.h ntvl.h Makefile
 	$(CC) $(CFLAGS) edge.c $(NTVL_LIB) $(LIBS_EDGE) -o edge
@@ -89,7 +93,7 @@ version.o: Makefile
 	$(CC) $(CFLAGS) -DNTVL_VERSION='"$(NTVL_VERSION)"' -DNTVL_OSNAME='"$(NTVL_OSNAME)"' -c version.c
 
 clean:
-	rm -rf $(NTVL_OBJS) $(NTVL_LIB) $(APPS) $(DOCS) test *.dSYM *~
+	rm -rf $(NTVL_OBJS) $(NTVL_LIB) $(APPS) $(MANFILES) test *.dSYM *~
 
 install: edge supernode edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
 	echo "MANDIR=$(MANDIR)"

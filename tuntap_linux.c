@@ -34,11 +34,10 @@ static void read_mac(char *ifname, ntvl_mac_t mac_addr) {
     perror ("Get hw addr");
   } else
     memcpy(mac_addr, ifr.ifr_ifru.ifru_hwaddr.sa_data, 6);
-
-  traceEvent(TRACE_NORMAL, "Interface %s has MAC %s",
+	traceEvent(TRACE_NORMAL, "Interface %s has MAC %s",
 	     ifname,
 	     macaddr_str(mac_addr_buf, mac_addr ));
-  close(_sock);
+	close(_sock);
 }
 
 /* ********************************** */
@@ -91,8 +90,7 @@ int tuntap_open(tuntap_dev *device,
   /* Store the device name for later reuse */
   strncpy(device->dev_name, ifr.ifr_name, MIN(IFNAMSIZ, NTVL_IFNAMSIZ) );
 
-  if ( device_mac && device_mac[0] != '\0' )
-  {
+  if ( device_mac && device_mac[0] != '\0' ) {
       /* Set the hw address before bringing the if up. */
       snprintf(buf, sizeof(buf), "/sbin/ifconfig %s hw ether %s",
                ifr.ifr_name, device_mac );
@@ -100,13 +98,10 @@ int tuntap_open(tuntap_dev *device,
       traceEvent(TRACE_INFO, "Setting MAC: %s", buf);
   }
 
-  if ( 0 == strncmp( "dhcp", address_mode, 5 ) )
-  {
+  if ( 0 == strncmp( "dhcp", address_mode, 5 ) ) {
       snprintf(buf, sizeof(buf), "/sbin/ifconfig %s %s mtu %d up",
                ifr.ifr_name, device_ip, mtu);
-  }
-  else
-  {
+  } else {
       snprintf(buf, sizeof(buf), "/sbin/ifconfig %s %s netmask %s mtu %d up",
                ifr.ifr_name, device_ip, device_mask, mtu);
   }
@@ -134,8 +129,7 @@ void tuntap_close(struct tuntap_dev *tuntap) {
 
 /* Fill out the ip_addr value from the interface. Called to pick up dynamic
  * address changes. */
-void tuntap_get_address(struct tuntap_dev *tuntap)
-{
+void tuntap_get_address(struct tuntap_dev *tuntap) {
     FILE * fp=NULL;
     ssize_t nread=0;
     char buf[NTVL_LINUX_SYSTEMCMD_SIZE];
@@ -148,8 +142,7 @@ void tuntap_get_address(struct tuntap_dev *tuntap)
     snprintf( buf, sizeof(buf), "/sbin/ifconfig %s | /bin/sed -e '/inet addr:/!d' -e 's/^.*inet addr://' -e 's/ .*$//'",
               tuntap->dev_name );
     fp=popen(buf, "r");
-    if (fp )
-    {
+    if (fp ) {
         memset(buf,0,NTVL_LINUX_SYSTEMCMD_SIZE); /* make sure buf is NULL terminated. */
         nread=fread(buf, 1, 15, fp);
         fclose(fp);

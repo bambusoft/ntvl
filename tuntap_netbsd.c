@@ -43,18 +43,14 @@ int tuntap_open(tuntap_dev *device /* ignored */,
      snprintf(tap_device, sizeof(tap_device), "/dev/%s", dev);
      device->fd = open(tap_device, O_RDWR);
      snprintf(tap_device, sizeof(tap_device), "%s", dev);
-  }
-  else {
+  } else {
      device->fd = open("/dev/tap", O_RDWR);
      if(device->fd >= 0) {
         if (ioctl(device->fd, TAPGIFNAME, &req) == -1) {
            traceEvent(TRACE_ERROR, "Unable to obtain name of tap device (%s)", strerror(errno));
            close(device->fd);
            return(-1);
-        }
-        else {
-           snprintf(tap_device, sizeof(tap_device), req.ifr_name);
-        }
+        } else  snprintf(tap_device, sizeof(tap_device), req.ifr_name);
      }
   }
 
@@ -69,8 +65,7 @@ int tuntap_open(tuntap_dev *device /* ignored */,
 
     device->ip_addr = inet_addr(device_ip);
 
-    if ( device_mac && device_mac[0] != '\0' )
-    {
+    if ( device_mac && device_mac[0] != '\0' ) {
         /* Set the hw address before bringing the if up. */
         snprintf(buf, sizeof(buf), "ifconfig %s link %s active",
                  tap_device, device_mac);
@@ -100,16 +95,16 @@ int tuntap_open(tuntap_dev *device /* ignored */,
       fgets(buf, sizeof(buf), fd);
       pclose(fd);
 
-      if(buf[0] == '\0') {
-	traceEvent(TRACE_ERROR, "Unable to read %s interface MAC address", tap_device);
-	exit(0);
-      }
+	  if(buf[0] == '\0') {
+		traceEvent(TRACE_ERROR, "Unable to read %s interface MAC address", tap_device);
+		exit(0);
+	  }
 
       traceEvent(TRACE_NORMAL, "Interface %s mac %s", tap_device, buf);
       if(sscanf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", &a, &b, &c, &d, &e, &f) == 6) {
-	device->mac_addr[0] = a, device->mac_addr[1] = b;
-	device->mac_addr[2] = c, device->mac_addr[3] = d;
-	device->mac_addr[4] = e, device->mac_addr[5] = f;
+		device->mac_addr[0] = a, device->mac_addr[1] = b;
+		device->mac_addr[2] = c, device->mac_addr[3] = d;
+		device->mac_addr[4] = e, device->mac_addr[5] = f;
       }
     }
   }
@@ -139,8 +134,7 @@ void tuntap_close(struct tuntap_dev *tuntap) {
 
 /* Fill out the ip_addr value from the interface. Called to pick up dynamic
  * address changes. */
-void tuntap_get_address(struct tuntap_dev *tuntap)
-{
+void tuntap_get_address(struct tuntap_dev *tuntap) {
 }
 
 #endif /* #ifdef __NetBSD__ */
