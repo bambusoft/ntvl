@@ -2,7 +2,7 @@
 
 /** Key files
  *
- *  Edge implements a very simple interface for getting instructions about
+ *  node implements a very simple interface for getting instructions about
  *  rolling keys. 
  *
  *  Key definitions are written as individual files in <transform>/<sa>.key. The
@@ -20,7 +20,7 @@
  *
  *  <valid_from> <valid_until> <transform> <opaque>
  *
- *  edge reads the key control file periodically to get updates in policy. edge
+ *  node reads the key control file periodically to get updates in policy. Node
  *  holds a number of keys in memory. Data can be decoded if it was encoded by
  *  any of the keys still in memory. By having at least 2 keys in memory it
  *  allows for clock skew and transmission delay when encoder and decoder roll
@@ -32,9 +32,9 @@
  *
  */
 
-/** How Edge Uses The Key Schedule
+/** How Node Uses The Key Schedule
  *
- *  Edge provides state space for a number of transform algorithms. Each
+ *  Node provides state space for a number of transform algorithms. Each
  *  transform uses its state space to store the SA information for its keys as
  *  found in the key file. When a packet is received the transform ID is in
  *  plain text. The packets is then sent to that transform for decoding. Each
@@ -42,12 +42,12 @@
  *  transform code then finds the SA number, then finds the cipher (with key) in
  *  the state space and uses this to decode the packet.
  *
- *  To support this, as edge reads each key line, it passes it to the
+ *  To support this, as node reads each key line, it passes it to the
  *  appropriate transform to parse the line and store the SA information in its
  *  state space.
  *
- *  When encoding a packet, edge has several transforms and potentially valid
- *  SAs to choose from. To keep track of which one to use for encoding edge does
+ *  When encoding a packet, node has several transforms and potentially valid
+ *  SAs to choose from. To keep track of which one to use for encoding node does
  *  its own book-keeping as each key line is passed to the transform code: it
  *  stores a lookup of valid_from -> transform. When encoding a packet it then
  *  just calls the transform with the best valid_from in the table. The

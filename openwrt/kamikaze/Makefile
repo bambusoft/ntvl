@@ -48,7 +48,7 @@ endef
 
 define Package/ntvl/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/edge $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/node $(1)/usr/sbin/
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/supernode $(1)/usr/sbin/
 endef
 

@@ -19,14 +19,14 @@ PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finlin
 
 NTVL_DEFINES=
 NTVL_OBJS_OPT=
-LIBS_EDGE_OPT=
+LIBS_NODE_OPT=
 
 NTVL_OPTION_AES?="yes"
 #NTVL_OPTION_AES=no
 
 ifeq ($(NTVL_OPTION_AES), "yes")
     NTVL_DEFINES+="-DNTVL_HAVE_AES"
-    LIBS_EDGE_OPT+=-lcrypto
+    LIBS_NODE_OPT+=-lcrypto
 endif
 
 CFLAGS+=$(DEBUG) $(OPTIMIZATION) $(WARN) $(OPTIONS) $(PLATOPTS) $(NTVL_DEFINES)
@@ -51,27 +51,27 @@ NTVL_LIB=ntvl.a
 NTVL_OBJS=ntvl.o ntvl_keyfile.o wire.o minilzo.o twofish.o \
          transform_null.o transform_tf.o transform_aes.o \
          tuntap_freebsd.o tuntap_netbsd.o tuntap_linux.o tuntap_osx.o version.o
-LIBS_EDGE+=$(LIBS_EDGE_OPT)
+LIBS_NODE+=$(LIBS_NODE_OPT)
 LIBS_SN=
 
 #For OpenSolaris (Solaris too?)
 ifeq ($(shell uname), SunOS)
-LIBS_EDGE+=-lsocket -lnsl
+LIBS_NODE+=-lsocket -lnsl
 LIBS_SN+=-lsocket -lnsl
 endif
 
-APPS=edge
+APPS=node
 APPS+=supernode
 
-MANFILES=edge.8.gz supernode.1.gz ntvl-v1.0.0.gz tunnel.1
+MANFILES=node.8.gz supernode.1.gz ntvl-v1.0.0.gz tunnel.1
 
 all: $(APPS) $(MANFILES)
 
-edge: edge.c $(NTVL_LIB) ntvl_wire.h ntvl.h Makefile
-	$(CC) $(CFLAGS) edge.c $(NTVL_LIB) $(LIBS_EDGE) -o edge
+node: node.c $(NTVL_LIB) ntvl_wire.h ntvl.h Makefile
+	$(CC) $(CFLAGS) node.c $(NTVL_LIB) $(LIBS_NODE) -o node
 
 test: test.c $(NTVL_LIB) ntvl_wire.h ntvl.h Makefile
-	$(CC) $(CFLAGS) test.c $(NTVL_LIB) $(LIBS_EDGE) -o test
+	$(CC) $(CFLAGS) test.c $(NTVL_LIB) $(LIBS_NODE) -o test
 
 supernode: sn.c $(NTVL_LIB) ntvl.h Makefile
 	$(CC) $(CFLAGS) sn.c $(NTVL_LIB) $(LIBS_SN) -o supernode
@@ -95,13 +95,13 @@ version.o: Makefile
 clean:
 	rm -rf $(NTVL_OBJS) $(NTVL_LIB) $(APPS) $(MANFILES) test *.dSYM *~
 
-install: edge supernode edge.8.gz supernode.1.gz ntvl-v1.0.0.gz
+install: node supernode node.8.gz supernode.1.gz ntvl-v1.0.0.gz
 	echo "MANDIR=$(MANDIR)"
 	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
 	$(INSTALL_PROG) supernode $(SBINDIR)/
-	$(INSTALL_PROG) edge $(SBINDIR)/
+	$(INSTALL_PROG) node $(SBINDIR)/
 	$(INSTALL_PROG) tunnel $(SBINDIR)/
-	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
+	$(INSTALL_DOC) node.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) tunnel.1 $(MAN1DIR)/
 	$(INSTALL_DOC) ntvl-v1.0.0.gz $(MAN7DIR)/

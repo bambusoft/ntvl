@@ -44,18 +44,18 @@ relay packets.
 ARP CACHE
 ---------
 
-ntvl makes use of the host operating system's own ARP cache. Each edge node
+ntvl makes use of the host operating system's own ARP cache. Each node
 allocates a random MAC address to itself. This MAC is constant for the life of
-the edge process. ARP packets are passed around as broadcast ethernet packets
+the node process. ARP packets are passed around as broadcast ethernet packets
 over ntvl and these packets cause the native ARP cache to be updated.
 
-Edge nodes send gratuitous ARP packets on startup. See GRATUITOUS ARP below.
+Nodes send gratuitous ARP packets on startup. See GRATUITOUS ARP below.
 
 
 REGISTRATION AND PEER-TO-PEER COMMUNICATION SETUP
 -------------------------------------------------
 
-A and B are edge nodes with public sockets Apub and Bpub; and private network
+A and B are nodes with public sockets Apub and Bpub; and private network
 addresses A and B respectively.  S is the supernode.
 
 A sends {REGISTER,Amac} to S. S registers {Amac->Apub}.
@@ -63,7 +63,7 @@ B sends {REGISTER,Bmac} to S. S registers {Bmac->Bpub}.
 
 Now ping from A to B.
 
-A sends broadcast "arp who-has B" to S. S relays the packet to all known edge
+A sends broadcast "arp who-has B" to S. S relays the packet to all known
 nodes. B replies "B at Bmac" to supernode which forwards this to A. So now ping
 A->B is known to be ping Amac(A)->Bmac(B).  Note: gratuitous arp also requires
 discussion.
@@ -78,12 +78,12 @@ Now the OS has received the arp reply and sends ICMP to Bmac(B) via the tunnel
 on A. A looks up Bmac in the peers list and encapsulates the packet to Bpub or
 the supernode if the MAC is not found.
 
-We assume that between two edge nodes, if Bpub receives a packet from Apub then
+We assume that between two nodes, if Bpub receives a packet from Apub then
 Apub can receive a packet from Bpub. This is the symmetric NAT case.  Note: In
 the symmetric NAT case, the public socket for a MAC address will be different
 for direct contact when compared to information from the supernode.
 
-When two edge nodes are both behind symmetric NAT they cannot establish direct
+When two nodes are both behind symmetric NAT they cannot establish direct
 communication.
 
 If A receives {REGISTER,Bmac} from B, A adds {Bmac->Bpub} to its peers list
@@ -91,12 +91,12 @@ knowing that Bmac is now reachable via that public socket. Similarly if B
 receives {REGISTER,Amac} from A.
 
 The supernode never forwards REGISTER messages because the public socket seen by
-the supervisor for some edge (eg. A) may be different to the socket seen by
-another edge due to the actions of symmetric NAT (alocating a new public socket
+the supervisor for some node (eg. A) may be different to the socket seen by
+another node due to the actions of symmetric NAT (alocating a new public socket
 for the new outbound UDP "connection").
 
 
-EDGE REGISTRATION DESIGN AMMENDMENTS (starting from 2008-04-10)
+NODE REGISTRATION DESIGN AMMENDMENTS (starting from 2008-04-10)
 ------------------------------------
 
  * Send REGISTER on rx of PACKET or REGISTER only when dest_mac == device MAC
@@ -177,7 +177,7 @@ ways to mitigate this problem:
 GRATUITOUS ARP
 --------------
 
-In addition to the ARP who-has mechanism noted above, two edge nodes can become
+In addition to the ARP who-has mechanism noted above, two nodes can become
 aware of one another by gratuitous ARP. A gratuitous ARP packet is a broadcast
 packet sent by a node for no other purpose than to announce its presence and
 identify its MAC and IP address. Gratuitous ARP packets are to keep ARP caches
@@ -189,7 +189,7 @@ MAN PAGES
 
 Look at a non-installed man page like this (linux/UNIX):
 
-nroff -man edge.8 | less
+nroff -man node.8 | less
 
 
 PACKET message FORMAT

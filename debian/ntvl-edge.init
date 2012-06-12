@@ -1,15 +1,15 @@
 #! /bin/bash
 ### BEGIN INIT INFO
-# Provides:          ntvl-edge
+# Provides:          ntvl-node
 # Required-Start:    $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: ntvl-edge
-# Description:       Start ntvl edge node daemon
+# Short-Description: ntvl-node
+# Description:       Start ntvl node daemon
 ### END INIT INFO
 
-# Init script for ntvl edge node
+# Init script for ntvl node
 # Copyright (C) 2010  Kim Hansen
 #
 # This program is free software: you can redistribute it and/or modify
@@ -29,9 +29,9 @@
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="ntvl edge"
-NAME=ntvl-edge
-DAEMON=/usr/sbin/edge
+DESC="ntvl node"
+NAME=ntvl-node
+DAEMON=/usr/sbin/node
 SCRIPTNAME=/etc/init.d/$NAME
 
 # Exit if the package is not installed
@@ -41,9 +41,9 @@ SCRIPTNAME=/etc/init.d/$NAME
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 
 # Check config
-if [ -z "$NTVL_EDGE_CONFIG_DONE" ]
+if [ -z "$NTVL_NODE_CONFIG_DONE" ]
 then
-	echo "Warning: ntvl-edge not configured, edit config file in /etc/default/$NAME." 1>&2
+	echo "Warning: ntvl-node not configured, edit config file in /etc/default/$NAME." 1>&2
         exit 0
 fi
 

@@ -58,7 +58,7 @@ static void read_mac(char *ifname, ntvl_mac_t mac_addr) {
  *          - non-negative file-descriptor on success
  */
 int tuntap_open(tuntap_dev *device, 
-                char *dev, /* user-definable interface name, eg. edge0 */
+                char *dev, /* user-definable interface name, eg. node0 */
                 const char *address_mode, /* static or dhcp */
                 char *device_ip, 
                 char *device_mask,

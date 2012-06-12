@@ -8,7 +8,7 @@ layer 3 encapsulation with data transform capabilities such as encryption and
 compression. This guide discusses the differences of previous release candidates
 ntvl-RC and ntvl-v1.0.0 version.
 .SH PROTOCOLS
-NTVL-1 uses a different set of messages to communicate with edges and
+NTVL-1 uses a different set of messages to communicate with nodes and
 supernodes. The NTVL-RC messages are not compatible with NTVL-1. There is no
 backward compatibility for n2n.
 .SH ENCRYPTION
@@ -21,13 +21,13 @@ Key Schedule
 A key schedule file lists a number of keys with the period for which each is
 valid along with the encryption type identifier and the actual key value. This
 allows the user to define up to 32 keys in advance with a pre-set time at which
-they keys will change. The key schedule file can be reloaded while the edge is
+they keys will change. The key schedule file can be reloaded while the node is
 running to allow new keys to be loaded and unused keys expunged.
 .TP
 Timing Requirements When a key rolls over to the next in the schedule, the new
 key is used for all transmitted packets; however any packets received using an
 older key can still be decoded as the keys from the key schedule are still
-known. As a result edges do not need to have accurate time synchronisation. The
+known. As a result nodes do not need to have accurate time synchronisation. The
 accuracy of required synchronisation depends to a large degree on the key
 schedule. Rapid key roll-overs requires more accurate time synchronisation.
 .P
@@ -55,7 +55,7 @@ TF cipher with LZO compression of data prior to encryption.
 AES-CBC ciper with LZO compression of data prior to encryption.
 
 .SH EXTENSIBILITY
-NTVL-1 decouples the data transform system from the core of the edge
+NTVL-1 decouples the data transform system from the core of the node
 operation. This allows for easier addition of new data transform
 operations. NTVL-1 reserves 64 standard transform identifiers (such as TwoFish
 encryption) but allocates transform identifiers 64 - 65536 for user-defined
@@ -64,7 +64,7 @@ breaking compatibility with the standard offering.
 
 .SH MULTIPLE SUPERNODES
 NTVL-1 introduces the capability of multiple supernodes to be used by an
-edge. NTVL-1 offers supernode in several flavours:
+node. NTVL-1 offers supernode in several flavours:
 .TP
 Stand-alone supernode
 
@@ -73,15 +73,15 @@ which operates in isolation.
 .TP
 Federated supernodes
 
-This is a cluster of supernodes which share information. Edges registered to any
+This is a cluster of supernodes which share information. nodes registered to any
 of the cooperating supernodes can relay packets through the supernode federation
 and switch supernodes if required. Supernodes can send PACKET or REGISTER
-messages to other supernodes to try and find the destination edge.
+messages to other supernodes to try and find the destination node.
 
 .P
-The NTVL-1 edge implementation allows multiple supernodes to be specified on the
-command line. Edges monitor the current supernode for responses to
-REGISTER_SUPER messages. If 3 responses are missed then the edge starts looking
+The NTVL-1 node implementation allows multiple supernodes to be specified on the
+command line. Nodes monitor the current supernode for responses to
+REGISTER_SUPER messages. If 3 responses are missed then the node starts looking
 for a new supernode. It cycles through the list of supernodes specified until it
 finds a working one.
 
@@ -91,7 +91,7 @@ overhead has been reduced by ensuring the messages contain only the data fields
 required. Some optional fields do not consume data if they are not present.
 
 .SH DAEMON OPERATION
-The supernode and edge use daemon mode of operation by default. This sense is
+The supernode and node use daemon mode of operation by default. This sense is
 inverted from ntvl-1 where they ran in the foreground by default. They can be
 made to run in the foreground so tools such a DJB's daemontools can work with
 them. See the 
@@ -99,7 +99,7 @@ them. See the
 option
 
 .SH MANAGEMENT CONSOLE
-Edge and supernode in NTVL-1 provide a UDP-based management console. Both listen
+node and supernode in NTVL-1 provide a UDP-based management console. Both listen
 on the localhost address 127.0.0.1. Commands can be sent to the programs by
 sending to the UDP socket. Responses are returned to the socket from which
 commands were issued. This only works from the computer on which the programs
@@ -116,27 +116,27 @@ authentication mechanism.
 The following message types work within NTVL-1.
 .TP
 REGISTER_SUPER
-Sent from an edge to its local supernode to register its MAC with the community.
+Sent from an node to its local supernode to register its MAC with the community.
 .TP
 REGISTER_SUPER_ACK
-Sent from a supernode to an edge to confirm registration. This also carries the
-definition of the edge socket as seen at the supernode so NAT can be detected
+Sent from a supernode to a node to confirm registration. This also carries the
+definition of the node socket as seen at the supernode so NAT can be detected
 and described.
 .TP
 REGISTER_SUPER_NAK
-Supernode refusing to register an edge.
+Supernode refusing to register a node.
 .TP
 PACKET
-Encapsulated ethernet packets sent between edges. Supernodes forward or
-broadcast these and edges send them direct in peer-to-peer mode.
+Encapsulated ethernet packets sent between nodes. Supernodes forward or
+broadcast these and nodes send them direct in peer-to-peer mode.
 .TP
 REGISTER
-A peer-to-peer mode registration request from one edge to another. Supernodes
+A peer-to-peer mode registration request from one node to another. Supernodes
 forward these to facilitate NAT crossing introductions.
 .TP
 REGISTER_ACK
-Complete peer-to-peer mode setup between two edges. These messages need to
-travel direct between edges.
+Complete peer-to-peer mode setup between two nodes. These messages need to
+travel direct between nodes.
 .TP
 FEDERATION
 Federated supernodes exchanging community information.
@@ -154,4 +154,4 @@ Richard Andrews - main author of n2n-2
 .TP
 Luca Deri - code inherited from n2n-1
 .SH SEE ALSO
-ifconfig(8) edge(8) supernode(1)
+ifconfig(8) node(8) supernode(1)

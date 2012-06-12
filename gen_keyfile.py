@@ -2,7 +2,7 @@
 
 # (c) 2009 Richard Andrews
 
-# Program to generate a ntvl_edge key schedule file for twofish keys
+# Program to generate a ntvl_node key schedule file for twofish keys
 # Each key line consists of the following element
 # <from> <until> <txfrm> <opaque>
 #

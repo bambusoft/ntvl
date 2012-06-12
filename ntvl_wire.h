@@ -40,14 +40,14 @@ typedef char    ntvl_sock_str_t[NTVL_SOCKBUF_SIZE];       /* tracing string buff
 
 enum ntvl_pc {
     ntvl_ping=0,                 /* Not used */
-    ntvl_register=1,             /* Register edge to edge */
-    ntvl_deregister=2,           /* Deregister this edge */
+    ntvl_register=1,             /* Register node to node */
+    ntvl_deregister=2,           /* Deregister this node */
     ntvl_packet=3,               /* PACKET data content */
-    ntvl_register_ack=4,         /* ACK of a registration from edge to edge */
-    ntvl_register_super=5,       /* Register edge to supernode */
-    ntvl_register_super_ack=6,   /* ACK from supernode to edge */
-    ntvl_register_super_nak=7,   /* NAK from supernode to edge - registration refused */
-    ntvl_federation=8            /* Not used by edge */
+    ntvl_register_ack=4,         /* ACK of a registration from node to node */
+    ntvl_register_super=5,       /* Register node to supernode */
+    ntvl_register_super_ack=6,   /* ACK from supernode to node */
+    ntvl_register_super_nak=7,   /* NAK from supernode to node - registration refused */
+    ntvl_federation=8            /* Not used by node */
 };
 
 typedef enum ntvl_pc ntvl_pc_t;
@@ -111,7 +111,7 @@ typedef struct ntvl_common ntvl_common_t;
 struct ntvl_REGISTER {
     ntvl_cookie_t        cookie;         /* Link REGISTER and REGISTER_ACK */
     ntvl_mac_t           srcMac;         /* MAC of registering party */
-    ntvl_mac_t           dstMac;         /* MAC of target edge */
+    ntvl_mac_t           dstMac;         /* MAC of target node */
     ntvl_sock_t          sock;           /* REVISIT: unused? */
 };
 
@@ -119,9 +119,9 @@ typedef struct ntvl_REGISTER ntvl_REGISTER_t;
 
 struct ntvl_REGISTER_ACK {
     ntvl_cookie_t        cookie;         /* Return cookie from REGISTER */
-    ntvl_mac_t           srcMac;         /* MAC of acknowledging party (supernode or edge) */
-    ntvl_mac_t           dstMac;         /* Reflected MAC of registering edge from REGISTER */
-    ntvl_sock_t          sock;           /* Supernode's view of edge socket (IP Addr, port) */
+    ntvl_mac_t           srcMac;         /* MAC of acknowledging party (supernode or node) */
+    ntvl_mac_t           dstMac;         /* Reflected MAC of registering node from REGISTER */
+    ntvl_sock_t          sock;           /* Supernode's view of node socket (IP Addr, port) */
 };
 
 typedef struct ntvl_REGISTER_ACK ntvl_REGISTER_ACK_t;
@@ -136,22 +136,22 @@ struct ntvl_PACKET {
 typedef struct ntvl_PACKET ntvl_PACKET_t;
 
 
-/* Linked with ntvl_register_super in ntvl_pc_t. Only from edge to supernode. */
+/* Linked with ntvl_register_super in ntvl_pc_t. Only from node to supernode. */
 struct ntvl_REGISTER_SUPER {
     ntvl_cookie_t        cookie;         /* Link REGISTER_SUPER and REGISTER_SUPER_ACK */
-    ntvl_mac_t           edgeMac;        /* MAC to register with edge sending socket */
+    ntvl_mac_t           nodeMac;        /* MAC to register with node sending socket */
     ntvl_auth_t          auth;           /* Authentication scheme and tokens */
 };
 
 typedef struct ntvl_REGISTER_SUPER ntvl_REGISTER_SUPER_t;
 
 
-/* Linked with ntvl_register_super_ack in ntvl_pc_t. Only from supernode to edge. */
+/* Linked with ntvl_register_super_ack in ntvl_pc_t. Only from supernode to node. */
 struct ntvl_REGISTER_SUPER_ACK {
     ntvl_cookie_t        cookie;         /* Return cookie from REGISTER_SUPER */
-    ntvl_mac_t           edgeMac;        /* MAC registered to edge sending socket */
+    ntvl_mac_t           nodeMac;        /* MAC registered to node sending socket */
     uint16_t            lifetime;       /* How long the registration will live */
-    ntvl_sock_t          sock;           /* Sending sockets associated with edgeMac */
+    ntvl_sock_t          sock;           /* Sending sockets associated with nodeMac */
 
     /* The packet format provides additional supernode definitions here. 
      * uint8_t count, then for each count there is one
@@ -167,7 +167,7 @@ struct ntvl_REGISTER_SUPER_ACK {
 typedef struct ntvl_REGISTER_SUPER_ACK ntvl_REGISTER_SUPER_ACK_t;
 
 
-/* Linked with ntvl_register_super_ack in ntvl_pc_t. Only from supernode to edge. */
+/* Linked with ntvl_register_super_ack in ntvl_pc_t. Only from supernode to node. */
 struct ntvl_REGISTER_SUPER_NAK {
     ntvl_cookie_t        cookie;         /* Return cookie from REGISTER_SUPER */
 };

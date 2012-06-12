@@ -35,9 +35,9 @@ struct ntvl_sn {
     sn_stats_t          stats;
     int                 daemon;         /* If non-zero then daemonise. */
     uint16_t            lport;          /* Local UDP port to bind to. */
-    int                 sock;           /* Main socket for UDP traffic with edges. */
+    int                 sock;           /* Main socket for UDP traffic with nodes. */
     int                 mgmt_sock;      /* management socket. */
-    struct peer_info *  edges;          /* Link list of registered edges. */
+    struct peer_info *  nodes;          /* Link list of registered nodes. */
 };
 
 typedef struct ntvl_sn ntvl_sn_t;
@@ -59,7 +59,7 @@ static int init_sn( ntvl_sn_t * sss ) {
     sss->lport = NTVL_SN_LPORT_DEFAULT;
     sss->sock = -1;
     sss->mgmt_sock = -1;
-    sss->edges = NULL;
+    sss->nodes = NULL;
 
     return 0; /* OK */
 }
@@ -73,7 +73,7 @@ static void deinit_sn( ntvl_sn_t * sss ) {
     if ( sss->mgmt_sock >= 0 ) closesocket(sss->mgmt_sock);
     sss->mgmt_sock=-1;
 
-    purge_peer_list( &(sss->edges), 0xffffffff );
+    purge_peer_list( &(sss->nodes), 0xffffffff );
 }
 
 
@@ -87,10 +87,10 @@ static uint16_t reg_lifetime( ntvl_sn_t * sss ) {
 }
 
 
-/** Update the edge table with the details of the edge which contacted the
+/** Update the node table with the details of the node which contacted the
  *  supernode. */
-static int update_edge( ntvl_sn_t * sss, 
-                        const ntvl_mac_t edgeMac,
+static int update_node( ntvl_sn_t * sss, 
+                        const ntvl_mac_t nodeMac,
                         const ntvl_community_t community,
                         const ntvl_sock_t * sender_sock,
                         time_t now) {
@@ -98,11 +98,11 @@ static int update_edge( ntvl_sn_t * sss,
     ntvl_sock_str_t      sockbuf;
     struct peer_info *  scan;
 
-    traceEvent( TRACE_DEBUG, "update_edge for %s [%s]",
-                macaddr_str( mac_buf, edgeMac ),
+    traceEvent( TRACE_DEBUG, "update_node for %s [%s]",
+                macaddr_str( mac_buf, nodeMac ),
                 sock_to_cstr( sockbuf, sender_sock ) );
 
-    scan = find_peer_by_mac( sss->edges, edgeMac );
+    scan = find_peer_by_mac( sss->nodes, nodeMac );
 
     if ( NULL == scan ) {
         /* Not known */
@@ -110,15 +110,15 @@ static int update_edge( ntvl_sn_t * sss,
         scan = (struct peer_info*)calloc(1, sizeof(struct peer_info)); /* deallocated in purge_expired_registrations */
 
         memcpy(scan->community_name, community, sizeof(ntvl_community_t) );
-        memcpy(&(scan->mac_addr), edgeMac, sizeof(ntvl_mac_t));
+        memcpy(&(scan->mac_addr), nodeMac, sizeof(ntvl_mac_t));
         memcpy(&(scan->sock), sender_sock, sizeof(ntvl_sock_t));
 
-        /* insert this guy at the head of the edges list */
-        scan->next = sss->edges;     /* first in list */
-        sss->edges = scan;           /* head of list points to new scan */
+        /* insert this guy at the head of the nodes list */
+        scan->next = sss->nodes;     /* first in list */
+        sss->nodes = scan;           /* head of list points to new scan */
 
-        traceEvent( TRACE_INFO, "update_edge created   %s ==> %s",
-                    macaddr_str( mac_buf, edgeMac ),
+        traceEvent( TRACE_INFO, "update_node created   %s ==> %s",
+                    macaddr_str( mac_buf, nodeMac ),
                     sock_to_cstr( sockbuf, sender_sock ) );
     } else {
         /* Known */
@@ -127,12 +127,12 @@ static int update_edge( ntvl_sn_t * sss,
             memcpy(scan->community_name, community, sizeof(ntvl_community_t) );
             memcpy(&(scan->sock), sender_sock, sizeof(ntvl_sock_t));
 
-            traceEvent( TRACE_INFO, "update_edge updated   %s ==> %s",
-                        macaddr_str( mac_buf, edgeMac ),
+            traceEvent( TRACE_INFO, "update_node updated   %s ==> %s",
+                        macaddr_str( mac_buf, nodeMac ),
                         sock_to_cstr( sockbuf, sender_sock ) );
         } else {
-            traceEvent( TRACE_DEBUG, "update_edge unchanged %s ==> %s",
-                        macaddr_str( mac_buf, edgeMac ),
+            traceEvent( TRACE_DEBUG, "update_node unchanged %s ==> %s",
+                        macaddr_str( mac_buf, nodeMac ),
                         sock_to_cstr( sockbuf, sender_sock ) );
         }
 
@@ -176,7 +176,7 @@ static ssize_t sendto_sock(ntvl_sn_t * sss,
 
 
 /** Try to forward a message to a unicast MAC. If the MAC is unknown then
- *  broadcast to all edges in the destination community.
+ *  broadcast to all nodes in the destination community.
  */
 static int try_forward( ntvl_sn_t * sss, 
                         const ntvl_common_t * cmn,
@@ -187,7 +187,7 @@ static int try_forward( ntvl_sn_t * sss,
     macstr_t            mac_buf;
     ntvl_sock_str_t      sockbuf;
 
-    scan = find_peer_by_mac( sss->edges, dstMac );
+    scan = find_peer_by_mac( sss->nodes, dstMac );
 
     if ( NULL != scan ) {
         int data_sent_len;
@@ -213,9 +213,9 @@ static int try_forward( ntvl_sn_t * sss,
 }
 
 
-/** Try and broadcast a message to all edges in the community.
+/** Try and broadcast a message to all nodes in the community.
  *
- *  This will send the exact same datagram to zero or more edges registered to
+ *  This will send the exact same datagram to zero or more nodes registered to
  *  the supernode.
  */
 static int try_broadcast( ntvl_sn_t * sss, 
@@ -229,7 +229,7 @@ static int try_broadcast( ntvl_sn_t * sss,
 
     traceEvent( TRACE_DEBUG, "try_broadcast" );
 
-    scan = sss->edges;
+    scan = sss->nodes;
     while(scan != NULL) {
         if( 0 == (memcmp(scan->community_name, cmn->community, sizeof(ntvl_community_t)) )
             && (0 != memcmp(srcMac, scan->mac_addr, sizeof(ntvl_mac_t)) ) ) {
@@ -274,7 +274,7 @@ static int process_mgmt( ntvl_sn_t * sss,
 
     ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "----------------\n" );
     ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "uptime    %lu\n", (now - sss->start_time) );
-    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "edges     %u\n", (unsigned int)peer_list_size( sss->edges ) );
+    ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "nodes     %u\n", (unsigned int)peer_list_size( sss->nodes ) );
     ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "errors    %u\n", (unsigned int)sss->stats.errors );
     ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "reg_sup   %u\n", (unsigned int)sss->stats.reg_super );
     ressize += snprintf( resbuf+ressize, NTVL_SN_PKTBUF_SIZE-ressize, "reg_nak   %u\n", (unsigned int)sss->stats.reg_super_nak );
@@ -316,10 +316,10 @@ static int process_udp( ntvl_sn_t * sss,
 
     /* Use decode_common() to determine the kind of packet then process it:
      *
-     * REGISTER_SUPER adds an edge and generate a return REGISTER_SUPER_ACK
+     * REGISTER_SUPER adds an node and generate a return REGISTER_SUPER_ACK
      *
      * REGISTER, REGISTER_ACK and PACKET messages are forwarded to their
-     * destination edge. If the destination is not known then PACKETs are
+     * destination node. If the destination is not known then PACKETs are
      * broadcast.
      */
 
@@ -341,7 +341,7 @@ static int process_udp( ntvl_sn_t * sss,
     --(cmn.ttl); /* The value copied into all forwarded packets. */
 
     if ( msg_type == MSG_TYPE_PACKET ) {
-        /* PACKET from one edge to another edge via supernode. */
+        /* PACKET from one node to another node via supernode. */
 
         /* pkt will be modified in place and recoded to an output of potentially
          * different size due to addition of the socket.*/
@@ -395,7 +395,7 @@ static int process_udp( ntvl_sn_t * sss,
         if ( unicast ) try_forward( sss, &cmn, pkt.dstMac, rec_buf, encx );
         else try_broadcast( sss, &cmn, pkt.srcMac, rec_buf, encx );
     } else if ( msg_type == MSG_TYPE_REGISTER ) { /* MSG_TYPE_PACKET */
-        /* Forwarding a REGISTER from one edge to the next */
+        /* Forwarding a REGISTER from one node to the next */
 
         ntvl_REGISTER_t                  reg;
         ntvl_common_t                    cmn2;
@@ -451,7 +451,7 @@ static int process_udp( ntvl_sn_t * sss,
         uint8_t                         ackbuf[NTVL_SN_PKTBUF_SIZE];
         size_t                          encx=0;
 
-        /* Edge requesting registration with us.  */
+        /* node requesting registration with us.  */
         
         sss->stats.last_reg_super=now;
         ++(sss->stats.reg_super);
@@ -463,7 +463,7 @@ static int process_udp( ntvl_sn_t * sss,
         memcpy( cmn2.community, cmn.community, sizeof(ntvl_community_t) );
 
         memcpy( &(ack.cookie), &(reg.cookie), sizeof(ntvl_cookie_t) );
-        memcpy( ack.edgeMac, reg.edgeMac, sizeof(ntvl_mac_t) );
+        memcpy( ack.nodeMac, reg.nodeMac, sizeof(ntvl_mac_t) );
         ack.lifetime = reg_lifetime( sss );
 
         ack.sock.family = AF_INET;
@@ -474,10 +474,10 @@ static int process_udp( ntvl_sn_t * sss,
         memset( &(ack.sn_bak), 0, sizeof(ntvl_sock_t) );
 
         traceEvent( TRACE_DEBUG, "Rx REGISTER_SUPER for %s [%s]",
-                    macaddr_str( mac_buf, reg.edgeMac ),
+                    macaddr_str( mac_buf, reg.nodeMac ),
                     sock_to_cstr( sockbuf, &(ack.sock) ) );
 
-        update_edge( sss, reg.edgeMac, cmn.community, &(ack.sock), now );
+        update_node( sss, reg.nodeMac, cmn.community, &(ack.sock), now );
 
         encode_REGISTER_SUPER_ACK( ackbuf, &encx, &cmn2, &ack );
 
@@ -485,7 +485,7 @@ static int process_udp( ntvl_sn_t * sss,
                 (struct sockaddr *)sender_sock, sizeof(struct sockaddr_in) );
 
         traceEvent( TRACE_DEBUG, "Tx REGISTER_SUPER_ACK for %s [%s]",
-                    macaddr_str( mac_buf, reg.edgeMac ),
+                    macaddr_str( mac_buf, reg.nodeMac ),
                     sock_to_cstr( sockbuf, &(ack.sock) ) );
 
     }
@@ -648,7 +648,7 @@ static int run_loop( ntvl_sn_t * sss ) {
             }
         } else traceEvent( TRACE_DEBUG, "timeout" );
 
-        purge_expired_registrations( &(sss->edges) );
+        purge_expired_registrations( &(sss->nodes) );
 
     } /* while */
 

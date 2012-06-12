@@ -456,7 +456,7 @@ static int transop_decode_aes( ntvl_trans_op_t * arg,
 
 
 static int transop_addspec_aes( ntvl_trans_op_t * arg, const ntvl_cipherspec_t * cspec ) {
-    traceEvent( TRACE_DEBUG, "transop_addspec_aes AES not built into edge.\n");
+    traceEvent( TRACE_DEBUG, "transop_addspec_aes AES not built into node.\n");
 
     return -1;
 }

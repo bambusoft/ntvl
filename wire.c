@@ -248,7 +248,7 @@ int encode_REGISTER_SUPER( uint8_t * base,
     int retval=0;
     retval += encode_common( base, idx, common );
     retval += encode_buf( base, idx, reg->cookie, NTVL_COOKIE_SIZE );
-    retval += encode_mac( base, idx, reg->edgeMac );
+    retval += encode_mac( base, idx, reg->nodeMac );
     retval += encode_uint16( base, idx, 0 ); /* NULL auth scheme */
     retval += encode_uint16( base, idx, 0 ); /* No auth data */
 
@@ -263,7 +263,7 @@ int decode_REGISTER_SUPER( ntvl_REGISTER_SUPER_t * reg,
     size_t retval=0;
     memset( reg, 0, sizeof(ntvl_REGISTER_SUPER_t) );
     retval += decode_buf( reg->cookie, NTVL_COOKIE_SIZE, base, rem, idx );
-    retval += decode_mac( reg->edgeMac, base, rem, idx );
+    retval += decode_mac( reg->nodeMac, base, rem, idx );
     retval += decode_uint16( &(reg->auth.scheme), base, rem, idx );
     retval += decode_uint16( &(reg->auth.toksize), base, rem, idx );
     retval += decode_buf( reg->auth.token, reg->auth.toksize, base, rem, idx );
@@ -314,7 +314,7 @@ int encode_REGISTER_SUPER_ACK( uint8_t * base,
     int retval=0;
     retval += encode_common( base, idx, common );
     retval += encode_buf( base, idx, reg->cookie, NTVL_COOKIE_SIZE );
-    retval += encode_mac( base, idx, reg->edgeMac );
+    retval += encode_mac( base, idx, reg->nodeMac );
     retval += encode_uint16( base, idx, reg->lifetime );
     retval += encode_sock( base, idx, &(reg->sock) );
     retval += encode_uint8( base, idx, reg->num_sn );
@@ -335,13 +335,13 @@ int decode_REGISTER_SUPER_ACK( ntvl_REGISTER_SUPER_ACK_t * reg,
 
     memset( reg, 0, sizeof(ntvl_REGISTER_SUPER_ACK_t) );
     retval += decode_buf( reg->cookie, NTVL_COOKIE_SIZE, base, rem, idx );
-    retval += decode_mac( reg->edgeMac, base, rem, idx );
+    retval += decode_mac( reg->nodeMac, base, rem, idx );
     retval += decode_uint16( &(reg->lifetime), base, rem, idx );
 
     /* Socket is mandatory in this message type */
     retval += decode_sock( &(reg->sock), base, rem, idx );
 
-    /* Following the edge socket are an array of backup supernodes. */
+    /* Following the node socket are an array of backup supernodes. */
     retval += decode_uint8( &(reg->num_sn), base, rem, idx );
     if ( reg->num_sn > 0 ) {
         /* We only support 0 or 1 at this stage */

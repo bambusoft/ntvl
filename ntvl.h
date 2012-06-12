@@ -30,8 +30,8 @@
    tunctl -t tun1
    ifconfig tun0 1.2.3.4 up
    ifconfig tun1 1.2.3.5 up
-   ./edge -d tun0 -l 2000 -r 127.0.0.1:3000 -c hello
-   ./edge -d tun1 -l 3000 -r 127.0.0.1:2000 -c hello
+   ./node -d tun0 -l 2000 -r 127.0.0.1:3000 -c hello
+   ./node -d tun1 -l 3000 -r 127.0.0.1:2000 -c hello
 
    tunctl -u UID -t tunX
 */
@@ -152,7 +152,7 @@ typedef struct tuntap_dev {
 
 /* Set NTVL_COMPRESSION_ENABLED to 0 to disable lzo1x compression of ethernet
  * frames. Doing this will break compatibility with the standard ntvl packet
- * format so do it only for experimentation. All edges must be built with the
+ * format so do it only for experimentation. All nodes must be built with the
  * same value if they are to understand each other. */
 #define NTVL_COMPRESSION_ENABLED 1
 
@@ -173,8 +173,8 @@ struct peer_info {
     time_t              last_seen;
 };
 
-struct ntvl_edge; /* defined in edge.c */
-typedef struct ntvl_edge    ntvl_edge_t;
+struct ntvl_node; /* defined in node.c */
+typedef struct ntvl_node    ntvl_node_t;
 
 
 /* ************************************** */

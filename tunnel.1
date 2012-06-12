@@ -123,8 +123,8 @@
 .rm #[ #] #H #V #F C
 .\" ========================================================================
 .\"
-.IX Title "NAT-TRAVERSE 1"
-.TH NAT-TRAVERSE 1 "2012-02-12" "perl v5.10.0" "User Contributed Perl Documentation"
+.IX Title "ntvl-tunnel 1.0.0"
+.TH ntvl-tunnel 1 "2012-02-12" "perl v5.10.0" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -144,20 +144,20 @@ where \f(CW40000\fR is an unused \s-1UDP\s0 port on \f(CW\*(C`left\*(C'\fR and \
 \&\f(CW\*(C`right\*(C'\fR. See \*(L"\s-1EXAMPLES\s0\*(R" for more.
 .SH "VERSION"
 .IX Header "VERSION"
-This document describes nat-traverse v0.5.
+This document describes ntvl-tunnel.
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-nat-traverse establishes connections between nodes which are behind \s-1NAT\s0
+ntvl-tunnel establishes connections between nodes which are behind \s-1NAT\s0
 gateways, i.e. hosts which do \fInot\fR have public \s-1IP\s0 addresses. Additionally,
-you can setup a small \s-1VPN\s0 by using pppd on top of nat-traverse (see
-\&\*(L"\s-1EXAMPLES\s0\*(R").  nat-traverse does \fInot\fR need an external server on the
+you can setup a small \s-1VPN\s0 by using pppd on top of ntvl-tunnel (see
+\&\*(L"\s-1EXAMPLES\s0\*(R").  ntvl-tunnel does \fInot\fR need an external server on the
 Internet, and it isn't necessary to reconfigure the involved \s-1NAT\s0 gateways,
-either. \fInat-traverse works out-of-the-box.\fR
+either. \fIntvl-tunnel works out-of-the-box.\fR
 .PP
 See \*(L"\s-1TECHNIQUE\s0\*(R" for how this is achieved.
 .PP
-Limitation: nat-traverse does not work with gateways which change the port
-numbers. This is a fundamental problem of nat-traverse's design, as the changed
+Limitation: ntvl-tunnel does not work with gateways which change the port
+numbers. This is a fundamental problem of ntvl-tunnel's design, as the changed
 port numbers are (in general) not predictable.
 .SH "OPTIONS"
 .IX Header "OPTIONS"
@@ -177,8 +177,8 @@ Runs the specified command after establishing the connection.
 The command will be run with its \s-1STDIN\s0 and \s-1STDOUT\s0 bound to the socket, i.e.
 everything the command writes to \s-1STDOUT\s0 will be forwarded to the peer.
 .Sp
-If no command is specified, nat-traverse will relay input from \s-1STDIN\s0 to the peer
-and vice versa, i.e. nat-traverse degrades to netcat.
+If no command is specified, ntvl-tunnel will relay input from \s-1STDIN\s0 to the peer
+and vice versa, i.e. ntvl-tunnel degrades to netcat.
 .ie n .IP """\-\-window=\f(CI10\f(CW""" 4
 .el .IP "\f(CW\-\-window=\f(CI10\f(CW\fR" 4
 .IX Item "--window=10"
@@ -191,35 +191,35 @@ Sets the maximum number of seconds to wait for an acknowledgement by the peer.
 .ie n .IP """\-\-quit\-after\-connect""" 4
 .el .IP "\f(CW\-\-quit\-after\-connect\fR" 4
 .IX Item "--quit-after-connect"
-Quits nat-traverse after the tunnel has been established successfully.
+Quits ntvl-tunnel after the tunnel has been established successfully.
 .Sp
-nat-traverse returns a non\-\f(CW0\fR statuscode to indicate that it wasn't able to
+ntvl-tunnel returns a non\-\f(CW0\fR statuscode to indicate that it wasn't able to
 establish the tunnel.
 .Sp
 \&\f(CW\*(C`\-\-quit\-after\-connect\*(C'\fR is useful if you want another program to use the
 tunnel. For example, you could configure OpenVPN to use the the same ports as
-nat-traverse \*(-- thus OpenVPN would be able to cross \s-1NAT\s0 gateways.
+ntvl-tunnel \*(-- thus OpenVPN would be able to cross \s-1NAT\s0 gateways.
 .ie n .IP """\-\-version"", ""\-\-help""" 4
 .el .IP "\f(CW\-\-version\fR, \f(CW\-\-help\fR" 4
 .IX Item "--version, --help"
 .SH "TECHNIQUE"
 .IX Header "TECHNIQUE"
-nat-traverse establishes connections between hosts behind \s-1NAT\s0 gateways without need
+ntvl-tunnel establishes connections between hosts behind \s-1NAT\s0 gateways without need
 for reconfiguration of the involved \s-1NAT\s0 gateways.
 .IP "1." 4
-Firstly, nat-traverse on host \f(CW\*(C`left\*(C'\fR sends garbage \s-1UDP\s0 packets to the \s-1NAT\s0 gateway
+Firstly, ntvl-tunnel on host \f(CW\*(C`left\*(C'\fR sends garbage \s-1UDP\s0 packets to the \s-1NAT\s0 gateway
 of \f(CW\*(C`right\*(C'\fR. These packets are, of course, discarded by the firewall.
 .IP "2." 4
-Then \f(CW\*(C`right\*(C'\fR's nat-traverse sends garbage \s-1UDP\s0 packets to the \s-1NAT\s0 gateway of
+Then \f(CW\*(C`right\*(C'\fR's ntvl-tunnel sends garbage \s-1UDP\s0 packets to the \s-1NAT\s0 gateway of
 \&\f(CW\*(C`left\*(C'\fR. These packets are \fInot\fR discarded, as \f(CW\*(C`left\*(C'\fR's \s-1NAT\s0 gateway thinks
 these packets are replies to the packets sent in step 1!
 .IP "3." 4
-\&\f(CW\*(C`left\*(C'\fR's nat-traverse continues to send garbage packets to \f(CW\*(C`right\*(C'\fR's \s-1NAT\s0 gateway.
+\&\f(CW\*(C`left\*(C'\fR's ntvl-tunnel continues to send garbage packets to \f(CW\*(C`right\*(C'\fR's \s-1NAT\s0 gateway.
 These packets are now not dropped either, as the \s-1NAT\s0 gateway thinks the packets
 are replies to the packets sent in step 2.
 .IP "4." 4
 Finally, both hosts send an acknowledgement packet to signal readiness. When
-these packets are received, the connection is established and nat-traverse can
+these packets are received, the connection is established and ntvl-tunnel can
 either relay \s-1STDIN/STDOUT\s0 to the socket or execute a program.
 .SH "EXAMPLES"
 .IX Header "EXAMPLES"
@@ -240,7 +240,7 @@ Protocol Daemon, \f(CW\*(C`pppd\*(C'\fR:
 .PP
 \&\f(CW\*(C`pppd\*(C'\fR creates a new interface, typically \f(CW\*(C`ppp0\*(C'\fR.  Using this interface, you
 can ping \f(CW10.0.0.1\fR or \f(CW10.0.0.2\fR. As you can see, \f(CW\*(C`pppd\*(C'\fR upgrades the
-data-only tunnel nat-traverse provides to a full \s-1IP\s0 tunnel. Thus you can
+data-only tunnel ntvl-tunnel provides to a full \s-1IP\s0 tunnel. Thus you can
 establish reliable \s-1TCP\s0 connections over the tunnel, even though the tunnel uses
 \&\s-1UDP\s0!  Furthermore, you could even add IPv6 addresses to \f(CW\*(C`ppp0\*(C'\fR by running \f(CW\*(C`ip
 \&\-6 addr add...\*(C'\fR!
@@ -271,13 +271,13 @@ As soon as the tunnel is established (using \s-1UDP\s0 ports \f(CW10001\fR and \
 .PP
 But do note that you lose the reliability of \s-1TCP\s0 in this example, as the actual
 data is transported via \s-1UDP\s0; so this is only a toy example. If you want
-reliable streams, use \s-1PPP\s0 on top of nat-traverse, as described above.
+reliable streams, use \s-1PPP\s0 on top of ntvl-tunnel, as described above.
 .SS "Setup of a \s-1VPN\s0 with OpenVPN"
 .IX Subsection "Setup of a VPN with OpenVPN"
-You can use <OpenVPN> over nat-traverse if you want to
+You can use <OpenVPN> over ntvl-tunnel if you want to
 have a \fIsecure\fR \s-1VPN\s0.
 .PP
-Using OpenVPN over nat-traverse requires only one change to OpenVPN's
+Using OpenVPN over ntvl-tunnel requires only one change to OpenVPN's
 configuration file, presuming that you don't want to use OpenVPN's multi-client
 mode: You have to adjust the \f(CW\*(C`code\*(C'\fR and \f(CW\*(C`lport\*(C'\fR options
 accordingly, for example:
@@ -303,12 +303,12 @@ accordingly, for example:
 .Ve
 .PP
 The \f(CW\*(C`until\*(C'\fR loop ensures that OpenVPN will not be started before
-nat-traverse was able to establish the connection. Michael Kugele
+ntvl-tunnel was able to establish the connection. Michael Kugele
 (\f(CW\*(C`michael (at) kugele.net\*(C'\fR) also reported a way to still be able to
-use OpenVPN's multi-client mode with nat-traverse: As all instances of
-nat-traverse have to use unique ports (because a connection is identified by
+use OpenVPN's multi-client mode with ntvl-tunnel: As all instances of
+ntvl-tunnel have to use unique ports (because a connection is identified by
 the source/destination port combination), you've to use redirection rules to
-redirect the ports used by nat-traverse to the port the OpenVPN daemon listens
+redirect the ports used by ntvl-tunnel to the port the OpenVPN daemon listens
 on:
 .PP
 .Vb 4
@@ -318,15 +318,15 @@ on:
 \&    \-\-dport $PORT \-j REDIRECT \-\-to\-port $LPORT
 .Ve
 .PP
-\&\f(CW$LPORT\fR specifies the source port nat-traverse uses on the server
+\&\f(CW$LPORT\fR specifies the source port ntvl-tunnel uses on the server
 side, and \f(CW\*(C`$HOST:$PORT\*(C'\fR is the address of the OpenVPN server.)
 .SH "LIMITATIONS"
 .IX Header "LIMITATIONS"
-Only IPv4 is supported, nat-traverse won't work with IPv6 addresses. Drop me a
+Only IPv4 is supported, ntvl-tunnel won't work with IPv6 addresses. Drop me a
 note if you do need IPv6 support.
 .PP
-nat-traverse does not work with gateways which change the port numbers. This
-is a fundamental problem of nat-traverse's design, as the changed port numbers
+ntvl-tunnel does not work with gateways which change the port numbers. This
+is a fundamental problem of ntvl-tunnel's design, as the changed port numbers
 are (in general) not predictable.
 .SH "SEE ALSO"
 .IX Header "SEE ALSO"
@@ -346,8 +346,8 @@ The Point-to-Point Protocol (\s-1PPP\s0). W. Simpson, Ed.. July 1994.  (Obsolete
 .IX Item "<http://ppp.samba.org/>"
 Website of Paul's \s-1PPP\s0 Package (open source implementation of the
 Point-to-Point Protocol (\s-1PPP\s0) on Linux and Solaris)
-.IP "<German talk about nat-traverse at http://linide.sourceforge.net/nat\-traverse/nat\-traverse\-talk.pdf>" 4
-.IX Item "<German talk about nat-traverse at http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf>"
+.IP "<German talk about ntvl-tunnel at http://linide.sourceforge.net/nat\-traverse/nat\-traverse\-talk.pdf>" 4
+.IX Item "<German talk about ntvl-tunnel at http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf>"
 Dieser Vortrag zeigt, wie man einen Tunnel zwischen zwei Computern, die
 beide hinter NAT-Gateways sitzen, hinbekommt. Dazu wird ein neues Programm
 vorgestellt, welches sowohl einfache TastendrA\*~Xcke an die Gegenseite

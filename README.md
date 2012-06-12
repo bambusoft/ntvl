@@ -1,7 +1,7 @@
-NTVL - Nat Traversal Virtual LAN
-================================
+NTVL - Nat Traversal VLAN / VPN
+===============================
 
-Nat Traversal Virtual LAN / Virtual VPN, is a networking tool to create a public/private network on the Internet  bypassing firewalls.
+Nat Traversal VLAN / VPN, is a networking tool to create a public/private network on the Internet  bypassing firewalls.
 
 You can find the latest version at http://ntvl.bambusoft.mx
 
@@ -15,7 +15,7 @@ application to network level.
 The main ntvl design features are:
 
 - An ntvl is an encrypted layer two private network based on a P2P protocol.
-- Encryption is performed on edge nodes using open protocols with user-defined encryption keys:
+- Encryption is performed on nodes using open protocols with user-defined encryption keys:
   you control your security without delegating it to companies as it happens with Skype or Hamachi.
 - Each ntvl user can simultaneously belong to multiple networks (a.k.a. communities).
 - Ability to cross NAT and firewalls in the reverse traffic direction (i.e. from outside to inside) so that ntvl nodes are reachable
@@ -24,18 +24,21 @@ The main ntvl design features are:
 
 The natvl architecture is based on two components:
 
-edge nodes:
+nodes:
 	Applications installed on user PCs that allow the natvl network to be build.
-	Practically each edge node creates a tun/tap device that is then the entry point to the ntvl network.
+	Practically each node creates a tun/tap device that is then the entry point to the ntvl network.
 	
 an supernode:
-	It is used by edge nodes at startup or for reaching nodes behind symmetrical firewalls.
+	It is used by nodes at startup or for reaching nodes behind symmetrical firewalls.
 	This application is basically a directory register and a packet router for those nodes that cannot talk directly.
+	
+tunnel:
+	Complementary tool to make a point-to-point tunnel
 
-
-Edge nodes talk by means of virtual tap interfaces. Each tap interface is an natvl edge node.
+Nodes talk by means of virtual tap interfaces. Each tap interface is an natvl node.
 Each PC can have multiple tap interfaces, one per ntvl network, so that the same PC can belong to multiple communities
 
-This work is based on the n2n Layer Two Peer to Peer VPN project at http://www.ntop.org/products/n2n/
-and the nat-traverse project at http://m19s28.dyndns.org/iblech/nat-traverse/
+This work is based on the nat-traverse project at http://m19s28.dyndns.org/iblech/nat-traverse/
+and the n2n Layer Two Peer to Peer VPN project at http://www.ntop.org/products/n2n/
+
 Thanks to Ingo Blechschmidt, Luca Deri, Richard Andrews and many others for their initial work.

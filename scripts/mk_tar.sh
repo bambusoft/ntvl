@@ -29,7 +29,7 @@ TEMPDIR="tmp"
 
 SOURCE_MANIFEST="
 README.md
-edge.c
+node.c
 lzoconf.h
 lzodefs.h
 Makefile
@@ -54,17 +54,17 @@ twofish.c
 twofish.h
 version.c
 wire.c
-edge.8
+node.8
 supernode.1
 ntvl-v1.0.0
 debian/changelog
 debian/compat
 debian/control
 debian/copyright
-debian/ntvl-edge.docs
-debian/ntvl-edge.install
+debian/ntvl-node.docs
+debian/ntvl-node.install
 debian/ntvl-supernode.install
-debian/ntvl-edge.manpages
+debian/ntvl-node.manpages
 debian/ntvl-supernode.manpages
 debian/README.Debian
 debian/rules

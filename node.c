@@ -52,7 +52,7 @@
 
 #define NTVL_PATHNAME_MAXLEN             256
 #define NTVL_MAX_TRANSFORMS              16
-#define NTVL_EDGE_MGMT_PORT              5644
+#define NTVL_NODE_MGMT_PORT              5644
 
 /** Positions in the transop array where various transforms are stored.
  *
@@ -75,22 +75,22 @@
 
 /* ******************************************************* */
 
-#define NTVL_EDGE_SN_HOST_SIZE 48
+#define NTVL_NODE_SN_HOST_SIZE 48
 
-typedef char ntvl_sn_name_t[NTVL_EDGE_SN_HOST_SIZE];
+typedef char ntvl_sn_name_t[NTVL_NODE_SN_HOST_SIZE];
 
-#define NTVL_EDGE_NUM_SUPERNODES 2
-#define NTVL_EDGE_SUP_ATTEMPTS   3       /* Number of failed attmpts before moving on to next supernode. */
+#define NTVL_NODE_NUM_SUPERNODES 2
+#define NTVL_NODE_SUP_ATTEMPTS   3       /* Number of failed attmpts before moving on to next supernode. */
 
 
-/** Main structure type for edge. */
-struct ntvl_edge {
-    int                 daemon;                 /**< Non-zero if edge should detach and run in the background. */
+/** Main structure type for node. */
+struct ntvl_node {
+    int                 daemon;                 /**< Non-zero if node should detach and run in the background. */
     uint8_t             re_resolve_supernode_ip;
     ntvl_sock_t          supernode;
     size_t              sn_idx;                 /**< Currently active supernode. */
     size_t              sn_num;                 /**< Number of supernode addresses defined. */
-    ntvl_sn_name_t       sn_ip_array[NTVL_EDGE_NUM_SUPERNODES];
+    ntvl_sn_name_t       sn_ip_array[NTVL_NODE_NUM_SUPERNODES];
     int                 sn_wait;                /**< Whether we are waiting for a supernode response. */
     ntvl_community_t     community_name;         /**< The community. 16 full octets. */
     char                keyschedule[NTVL_PATHNAME_MAXLEN];
@@ -103,8 +103,8 @@ struct ntvl_edge {
     int                 drop_multicast;         /**< Multicast ethernet addresses. */
     ntvl_trans_op_t      transop[NTVL_MAX_TRANSFORMS]; /* one for each transform at fixed positions */
     size_t              tx_transop_idx;         /**< The transop to use when encoding. */
-    struct peer_info *  known_peers;            /**< Edges we are connected to. */
-    struct peer_info *  pending_peers;          /**< Edges we have tried to register with. */
+    struct peer_info *  known_peers;            /**< Nodes we are connected to. */
+    struct peer_info *  pending_peers;          /**< Nodes we have tried to register with. */
     time_t              last_register_req;      /**< Check if time to re-register with super*/
     size_t              register_lifetime;      /**< Time distance after last_register_req at which to re-register. */
     time_t              last_p2p;               /**< Last time p2p traffic was received. */
@@ -121,14 +121,14 @@ struct ntvl_edge {
 };
 
 /** Return the IP address of the current supernode in the ring. */
-static const char * supernode_ip( const ntvl_edge_t * eee ) {
+static const char * supernode_ip( const ntvl_node_t * eee ) {
     return (eee->sn_ip_array)[eee->sn_idx];
 }
 
 
 static void supernode2addr(ntvl_sock_t * sn, const ntvl_sn_name_t addr);
 
-static void send_packet2net(ntvl_edge_t * eee,
+static void send_packet2net(ntvl_node_t * eee,
 			    uint8_t *decrypted_msg, size_t len);
 
 
@@ -254,15 +254,15 @@ static char ** buildargv(int * effectiveargc, char * const linebuffer) {
 /* ************************************** */
 
 
-/** Initialise an edge to defaults.
+/** Initialise an node to defaults.
  *
  *  This also initialises the NULL transform operation opstruct.
  */
-static int edge_init(ntvl_edge_t * eee) {
+static int node_init(ntvl_node_t * eee) {
 #ifdef WIN32
     initWin32();
 #endif
-    memset(eee, 0, sizeof(ntvl_edge_t));
+    memset(eee, 0, sizeof(ntvl_node_t));
     eee->start_time = time(NULL);
 
     transop_null_init(    &(eee->transop[NTVL_TRANSOP_NULL_IDX]) );
@@ -287,7 +287,7 @@ static int edge_init(ntvl_edge_t * eee) {
     eee->register_lifetime = REGISTER_SUPER_INTERVAL_DFL;
     eee->last_p2p = 0;
     eee->last_sup = 0;
-    eee->sup_attempts = NTVL_EDGE_SUP_ATTEMPTS;
+    eee->sup_attempts = NTVL_NODE_SUP_ATTEMPTS;
 
     if(lzo_init() != LZO_E_OK) {
         traceEvent(TRACE_ERROR, "LZO compression error");
@@ -300,7 +300,7 @@ static int edge_init(ntvl_edge_t * eee) {
 
 
 /* Called in main() after options are parsed. */
-static int edge_init_twofish( ntvl_edge_t * eee, uint8_t *encrypt_pwd, uint32_t encrypt_pwd_len ) {
+static int node_init_twofish( ntvl_node_t * eee, uint8_t *encrypt_pwd, uint32_t encrypt_pwd_len ) {
     return transop_twofish_setup( &(eee->transop[NTVL_TRANSOP_TF_IDX]), 0, encrypt_pwd, encrypt_pwd_len );
 }
 
@@ -328,7 +328,7 @@ static int transop_enum_to_index( ntvl_transform_t id ) {
 
 /** Called periodically to roll keys and do any periodic maintenance in the
  *  tranform operations state machines. */
-static int ntvl_tick_transop( ntvl_edge_t * eee, time_t now ) {
+static int ntvl_tick_transop( ntvl_node_t * eee, time_t now ) {
     ntvl_tostat_t tst;
     size_t trop = eee->tx_transop_idx;
 
@@ -363,7 +363,7 @@ static int ntvl_tick_transop( ntvl_edge_t * eee, time_t now ) {
  *  encoding can be passed to the correct trans_op. The trans_op internal table
  *  will then determine the best SA for that trans_op from the key schedule to
  *  use for encoding. */
-static int edge_init_keyschedule( ntvl_edge_t * eee ) {
+static int node_init_keyschedule( ntvl_node_t * eee ) {
 
 #define NTVL_NUM_CIPHERSPECS 32
 
@@ -405,8 +405,8 @@ static int edge_init_keyschedule( ntvl_edge_t * eee ) {
 }
 
 
-/** Deinitialise the edge and deallocate any owned memory. */
-static void edge_deinit(ntvl_edge_t * eee) {
+/** Deinitialise the node and deallocate any owned memory. */
+static void node_deinit(ntvl_node_t * eee) {
     if ( eee->udp_sock >=0 ) {
         closesocket( eee->udp_sock );
     }
@@ -422,14 +422,14 @@ static void edge_deinit(ntvl_edge_t * eee) {
     (eee->transop[NTVL_TRANSOP_NULL_IDX].deinit)(&eee->transop[NTVL_TRANSOP_NULL_IDX]);
 }
 
-static void readFromIPSocket( ntvl_edge_t * eee );
+static void readFromIPSocket( ntvl_node_t * eee );
 
-static void readFromMgmtSocket( ntvl_edge_t * eee, int * keep_running );
+static void readFromMgmtSocket( ntvl_node_t * eee, int * keep_running );
 
 static void help() {
   print_ntvl_version();
 
-  printf("edge "
+  printf("node "
 #if defined(NTVL_CAN_NAME_IFACE)
 	 "-d <tun device> "
 #endif /* #if defined(NTVL_CAN_NAME_IFACE) */
@@ -455,10 +455,10 @@ static void help() {
 #endif
 
   printf("-a <mode:address>        | Set interface address. For DHCP use '-r -a dhcp:0.0.0.0'\n");
-  printf("-c <community>           | ntvl community name the edge belongs to.\n");
+  printf("-c <community>           | ntvl community name the node belongs to.\n");
   printf("-k <encrypt key>         | Encryption key (ASCII) - also NTVL_KEY=<encrypt key>. Not with -K.\n");
   printf("-K <key file>            | Specify a key schedule file to load. Not with -k.\n");
-  printf("-s <netmask>             | Edge interface netmask in dotted decimal notation (255.255.255.0).\n");
+  printf("-s <netmask>             | Node interface netmask in dotted decimal notation (255.255.255.0).\n");
   printf("-l <supernode host:port> | Supernode IP:port\n");
   printf("-b                       | Periodically resolve supernode IP\n");
   printf("                         : (when supernodes are running on dynamic IPs)\n");
@@ -472,11 +472,11 @@ static void help() {
 #endif /* #ifdef NTVL_HAVE_DAEMON */
   printf("-m <MAC address>         | Fix MAC address for the TAP interface (otherwise it may be random)\n"
          "                         : eg. -m 01:02:03:04:05:06\n");
-  printf("-M <mtu>                 | Specify ntvl MTU of edge interface (default %d).\n", DEFAULT_MTU);
+  printf("-M <mtu>                 | Specify ntvl MTU of node interface (default %d).\n", DEFAULT_MTU);
   printf("-r                       | Enable packet forwarding through ntvl community.\n");
   printf("-E                       | Accept multicast MAC addresses (default=drop).\n");
   printf("-v                       | Make more verbose. Repeat as required.\n");
-  printf("-t                       | Management UDP Port (for multiple edges on a machine).\n");
+  printf("-t                       | Management UDP Port (for multiple nodes on a machine).\n");
 
   printf("\nEnvironment variables:\n");
   printf("  NTVL_KEY                | Encryption key (ASCII). Not with -K or -k.\n" );
@@ -505,8 +505,8 @@ static ssize_t sendto_sock( int fd, const void * buf, size_t len, const ntvl_soc
 }
 
 
-/** Send a REGISTER packet to another edge. */
-static void send_register( ntvl_edge_t * eee, const ntvl_sock_t * remote_peer) {
+/** Send a REGISTER packet to another node. */
+static void send_register( ntvl_node_t * eee, const ntvl_sock_t * remote_peer) {
     uint8_t pktbuf[NTVL_PKT_BUF_SIZE];
     size_t idx;
     ssize_t sent;
@@ -538,7 +538,7 @@ static void send_register( ntvl_edge_t * eee, const ntvl_sock_t * remote_peer) {
 
 
 /** Send a REGISTER_SUPER packet to the current supernode. */
-static void send_register_super( ntvl_edge_t * eee, const ntvl_sock_t * supernode) {
+static void send_register_super( ntvl_node_t * eee, const ntvl_sock_t * supernode) {
     uint8_t pktbuf[NTVL_PKT_BUF_SIZE];
     size_t idx;
     ssize_t sent;
@@ -561,7 +561,7 @@ static void send_register_super( ntvl_edge_t * eee, const ntvl_sock_t * supernod
     reg.auth.scheme=0; /* No auth yet */
 
     idx=0;
-    encode_mac( reg.edgeMac, &idx, eee->device.mac_addr );
+    encode_mac( reg.nodeMac, &idx, eee->device.mac_addr );
 
     idx=0;
     encode_REGISTER_SUPER( pktbuf, &idx, &cmn, &reg );
@@ -575,8 +575,8 @@ static void send_register_super( ntvl_edge_t * eee, const ntvl_sock_t * supernod
 }
 
 
-/** Send a REGISTER_ACK packet to a peer edge. */
-static void send_register_ack( ntvl_edge_t * eee, const ntvl_sock_t * remote_peer, const ntvl_REGISTER_t * reg ) {
+/** Send a REGISTER_ACK packet to a peer node. */
+static void send_register_ack( ntvl_node_t * eee, const ntvl_sock_t * remote_peer, const ntvl_REGISTER_t * reg ) {
     uint8_t pktbuf[NTVL_PKT_BUF_SIZE];
     size_t idx;
     ssize_t sent;
@@ -609,29 +609,29 @@ static void send_register_ack( ntvl_edge_t * eee, const ntvl_sock_t * remote_pee
 
 /** NOT IMPLEMENTED
  *
- *  This would send a DEREGISTER packet to a peer edge or supernode to indicate
- *  the edge is going away.
+ *  This would send a DEREGISTER packet to a peer node or supernode to indicate
+ *  the node is going away.
  */
-static void send_deregister(ntvl_edge_t * eee, ntvl_sock_t * remote_peer) {
+static void send_deregister(ntvl_node_t * eee, ntvl_sock_t * remote_peer) {
     /* Marshall and send message */
 }
 
 
 static int is_empty_ip_address( const ntvl_sock_t * sock );
-static void update_peer_address(ntvl_edge_t * eee,
+static void update_peer_address(ntvl_node_t * eee,
                                 uint8_t from_supernode,
                                 const ntvl_mac_t mac,
                                 const ntvl_sock_t * peer,
                                 time_t when);
-void check_peer( ntvl_edge_t * eee,
+void check_peer( ntvl_node_t * eee,
                  uint8_t from_supernode,
                  const ntvl_mac_t mac,
                  const ntvl_sock_t * peer );
-void try_send_register( ntvl_edge_t * eee,
+void try_send_register( ntvl_node_t * eee,
                         uint8_t from_supernode,
                         const ntvl_mac_t mac,
                         const ntvl_sock_t * peer );
-void set_peer_operational( ntvl_edge_t * eee,
+void set_peer_operational( ntvl_node_t * eee,
                            const ntvl_mac_t mac,
                            const ntvl_sock_t * peer );
 
@@ -650,7 +650,7 @@ void set_peer_operational( ntvl_edge_t * eee,
  *
  *  Called from the main loop when Rx a packet for our device mac.
  */
-void try_send_register( ntvl_edge_t * eee,
+void try_send_register( ntvl_node_t * eee,
                         uint8_t from_supernode,
                         const ntvl_mac_t mac,
                         const ntvl_sock_t * peer ) {
@@ -684,7 +684,7 @@ void try_send_register( ntvl_edge_t * eee,
 
 
 /** Update the last_seen time for this peer, or get registered. */
-void check_peer( ntvl_edge_t * eee,
+void check_peer( ntvl_node_t * eee,
                  uint8_t from_supernode,
                  const ntvl_mac_t mac,
                  const ntvl_sock_t * peer ) {
@@ -705,7 +705,7 @@ void check_peer( ntvl_edge_t * eee,
  *
  * Called by main loop when Rx a REGISTER_ACK.
  */
-void set_peer_operational( ntvl_edge_t * eee,
+void set_peer_operational( ntvl_node_t * eee,
                         const ntvl_mac_t mac,
                         const ntvl_sock_t * peer ) {
     struct peer_info * prev = NULL;
@@ -789,7 +789,7 @@ static int is_empty_ip_address( const ntvl_sock_t * sock ) {
  *  - if the public_ip socket has changed, erase the entry
  *  - if the same, update its last_seen = when
  */
-static void update_peer_address(ntvl_edge_t * eee,
+static void update_peer_address(ntvl_node_t * eee,
                                 uint8_t from_supernode,
                                 const ntvl_mac_t mac,
                                 const ntvl_sock_t * peer,
@@ -887,7 +887,7 @@ static int build_gratuitous_arp(char *buffer, uint16_t buffer_len) {
 
 /** Called from update_supernode_reg to periodically send gratuitous ARP
  *  broadcasts. */
-static void send_grat_arps(ntvl_edge_t * eee,) {
+static void send_grat_arps(ntvl_node_t * eee,) {
   char buffer[48];
   size_t len;
 
@@ -905,7 +905,7 @@ static void send_grat_arps(ntvl_edge_t * eee,) {
  *
  *  This is frequently called by the main loop.
  */
-static void update_supernode_reg( ntvl_edge_t * eee, time_t nowTime ) {
+static void update_supernode_reg( ntvl_node_t * eee, time_t nowTime ) {
     if ( eee->sn_wait && ( nowTime > (eee->last_register_req + (eee->register_lifetime/10) ) ) ) {
         /* fall through */
         traceEvent( TRACE_DEBUG, "update_supernode_reg: doing fast retry." );
@@ -925,7 +925,7 @@ static void update_supernode_reg( ntvl_edge_t * eee, time_t nowTime ) {
         traceEvent(TRACE_WARNING, "Supernode not responding - moving to %u of %u", 
                    (unsigned int)eee->sn_idx, (unsigned int)eee->sn_num );
 
-        eee->sup_attempts = NTVL_EDGE_SUP_ATTEMPTS;
+        eee->sup_attempts = NTVL_NODE_SUP_ATTEMPTS;
     } else {
         --(eee->sup_attempts);
     }
@@ -950,7 +950,7 @@ static void update_supernode_reg( ntvl_edge_t * eee, time_t nowTime ) {
 
 
 /* @return 1 if destination is a peer, 0 if destination is supernode */
-static int find_peer_destination(ntvl_edge_t * eee,
+static int find_peer_destination(ntvl_node_t * eee,
                                  ntvl_mac_t mac_address,
                                  ntvl_sock_t * destination) {
     const struct peer_info *scan = eee->known_peers;
@@ -1006,9 +1006,9 @@ static const struct option long_options[] = {
 /* ***************************************************** */
 
 
-/** Send an ecapsulated ethernet PACKET to a destination edge or broadcast MAC
+/** Send an ecapsulated ethernet PACKET to a destination node or broadcast MAC
  *  address. */
-static int send_PACKET( ntvl_edge_t * eee,
+static int send_PACKET( ntvl_node_t * eee,
                         ntvl_mac_t dstMac,
                         const uint8_t * pktbuf,
                         size_t pktlen ) {
@@ -1039,11 +1039,11 @@ static int send_PACKET( ntvl_edge_t * eee,
  * cipherspec in the key schedule. 
  *
  * Never fall back to NULL tranform unless no key sources were specified. It is
- * better to render edge inoperative than to expose user data in the clear. In
+ * better to render node inoperative than to expose user data in the clear. In
  * the case where all SAs are expired an arbitrary transform will be chosen for
  * Tx. It will fail having no valid SAs but one must be selected.
  */
-static size_t edge_choose_tx_transop( const ntvl_edge_t * eee ) {
+static size_t node_choose_tx_transop( const ntvl_node_t * eee ) {
     if ( eee->null_transop) {
         return NTVL_TRANSOP_NULL_IDX;
     }
@@ -1052,7 +1052,7 @@ static size_t edge_choose_tx_transop( const ntvl_edge_t * eee ) {
 
 
 /** A layer-2 packet was received at the tunnel and needs to be sent via UDP. */
-static void send_packet2net(ntvl_edge_t * eee,
+static void send_packet2net(ntvl_node_t * eee,
                             uint8_t *tap_pkt, size_t len) {
     ipstr_t ip_buf;
     ntvl_mac_t destMac;
@@ -1106,7 +1106,7 @@ static void send_packet2net(ntvl_edge_t * eee,
     memcpy( pkt.srcMac, eee->device.mac_addr, NTVL_MAC_SIZE);
     memcpy( pkt.dstMac, destMac, NTVL_MAC_SIZE);
 
-    tx_transop_idx = edge_choose_tx_transop( eee );
+    tx_transop_idx = node_choose_tx_transop( eee );
 
     pkt.sock.family=0; /* do not encode sock */
     pkt.transform = eee->transop[tx_transop_idx].transform_id;
@@ -1166,7 +1166,7 @@ static int is_ethMulticast( const void * buf, size_t bufsize ) {
 /** Read a single packet from the TAP interface, process it and write out the
  *  corresponding packet to the cooked socket.
  */
-static void readFromTAPSocket( ntvl_edge_t * eee ) {
+static void readFromTAPSocket( ntvl_node_t * eee ) {
     /* tun -> remote */
     uint8_t             eth_pkt[NTVL_PKT_BUF_SIZE];
     macstr_t            mac_buf;
@@ -1194,7 +1194,7 @@ static void readFromTAPSocket( ntvl_edge_t * eee ) {
 
 /** A PACKET has arrived containing an encapsulated ethernet datagram - usually
  *  encrypted. */
-static int handle_PACKET( ntvl_edge_t * eee,
+static int handle_PACKET( ntvl_node_t * eee,
                           const ntvl_common_t * cmn,
                           const ntvl_PACKET_t * pkt,
                           const ntvl_sock_t * orig_sender,
@@ -1259,7 +1259,7 @@ static int handle_PACKET( ntvl_edge_t * eee,
 
 /** Read a datagram from the management UDP socket and take appropriate
  *  action. */
-static void readFromMgmtSocket( ntvl_edge_t * eee, int * keep_running ) {
+static void readFromMgmtSocket( ntvl_node_t * eee, int * keep_running ) {
     uint8_t             udp_buf[NTVL_PKT_BUF_SIZE];      /* Compete UDP packet */
     ssize_t             recvlen;
     ssize_t             sendlen;
@@ -1290,8 +1290,8 @@ static void readFromMgmtSocket( ntvl_edge_t * eee, int * keep_running ) {
             ++traceLevel;
 
             msg_len += snprintf( (char *)(udp_buf+msg_len), (NTVL_PKT_BUF_SIZE-msg_len),
-                                 "Help for edge management console:\n"
-                                 "  stop    Gracefully exit edge\n"
+                                 "Help for node management console:\n"
+                                 "  stop    Gracefully exit node\n"
                                  "  help    This help message\n"
                                  "  +verb   Increase verbosity of logging\n"
                                  "  -verb   Decrease verbosity of logging\n"
@@ -1344,7 +1344,7 @@ static void readFromMgmtSocket( ntvl_edge_t * eee, int * keep_running ) {
     if ( recvlen >= 6 ) {
         if ( 0 == memcmp( udp_buf, "reload", 6 ) ) {
             if ( strlen( eee->keyschedule ) > 0 ) {
-                if ( edge_init_keyschedule(eee) == 0 ) {
+                if ( node_init_keyschedule(eee) == 0 ) {
                     msg_len=0;
                     msg_len += snprintf( (char *)(udp_buf+msg_len), (NTVL_PKT_BUF_SIZE-msg_len), "> OK\n" );
                     sendto( eee->udp_mgmt_sock, udp_buf, msg_len, 0/*flags*/,
@@ -1358,7 +1358,7 @@ static void readFromMgmtSocket( ntvl_edge_t * eee, int * keep_running ) {
     traceEvent(TRACE_DEBUG, "mgmt status rq" );
 
     msg_len=0;
-    msg_len += snprintf( (char *)(udp_buf+msg_len), (NTVL_PKT_BUF_SIZE-msg_len), "Statistics for edge\n" );
+    msg_len += snprintf( (char *)(udp_buf+msg_len), (NTVL_PKT_BUF_SIZE-msg_len), "Statistics for node\n" );
     msg_len += snprintf( (char *)(udp_buf+msg_len), (NTVL_PKT_BUF_SIZE-msg_len), "uptime %lu\n", time(NULL) - eee->start_time );
 
     msg_len += snprintf( (char *)(udp_buf+msg_len), (NTVL_PKT_BUF_SIZE-msg_len),
@@ -1398,7 +1398,7 @@ static void readFromMgmtSocket( ntvl_edge_t * eee, int * keep_running ) {
 
 
 /** Read a datagram from the main UDP socket to the internet. */
-static void readFromIPSocket( ntvl_edge_t * eee ) {
+static void readFromIPSocket( ntvl_node_t * eee ) {
     ntvl_common_t        cmn; /* common fields in the packet header */
 
     ntvl_sock_str_t      sockbuf1;
@@ -1471,7 +1471,7 @@ static void readFromIPSocket( ntvl_edge_t * eee ) {
             handle_PACKET( eee, &cmn, &pkt, orig_sender, udp_buf+idx, recvlen-idx );
         }
         else if(msg_type == MSG_TYPE_REGISTER) {
-            /* Another edge is registering with us */
+            /* Another node is registering with us */
             ntvl_REGISTER_t reg;
 
             decode_REGISTER( &reg, &cmn, udp_buf, &rem, &idx );
@@ -1492,7 +1492,7 @@ static void readFromIPSocket( ntvl_edge_t * eee ) {
 
             send_register_ack(eee, orig_sender, &reg);
         } else if(msg_type == MSG_TYPE_REGISTER_ACK) {
-            /* Peer edge is acknowledging our register request */
+            /* Peer node is acknowledging our register request */
             ntvl_REGISTER_ACK_t ra;
 
             decode_REGISTER_ACK( &ra, &cmn, udp_buf, &rem, &idx );
@@ -1516,7 +1516,7 @@ static void readFromIPSocket( ntvl_edge_t * eee ) {
                 if ( ra.sock.family ) orig_sender = &(ra.sock);
 
                 traceEvent(TRACE_NORMAL, "Rx REGISTER_SUPER_ACK myMAC=%s [%s] (external %s). Attempts %u",
-                           macaddr_str( mac_buf1, ra.edgeMac ),
+                           macaddr_str( mac_buf1, ra.nodeMac ),
                            sock_to_cstr(sockbuf1, &sender),
                            sock_to_cstr(sockbuf2, orig_sender), 
                            (unsigned int)eee->sup_attempts );
@@ -1529,7 +1529,7 @@ static void readFromIPSocket( ntvl_edge_t * eee ) {
 
                     eee->last_sup = now;
                     eee->sn_wait=0;
-                    eee->sup_attempts = NTVL_EDGE_SUP_ATTEMPTS; /* refresh because we got a response */
+                    eee->sup_attempts = NTVL_NODE_SUP_ATTEMPTS; /* refresh because we got a response */
 
                     /* REVISIT: store sn_back */
                     eee->register_lifetime = ra.lifetime;
@@ -1551,7 +1551,7 @@ static void readFromIPSocket( ntvl_edge_t * eee ) {
 
 #ifdef WIN32
 static DWORD tunReadThread(LPVOID lpArg ) {
-    ntvl_edge_t *eee = (ntvl_edge_t*)lpArg;
+    ntvl_node_t *eee = (ntvl_node_t*)lpArg;
 
     while(1) readFromTAPSocket(eee);
 	
@@ -1561,7 +1561,7 @@ static DWORD tunReadThread(LPVOID lpArg ) {
 
 /** Start a second thread in Windows because TUNTAP interfaces do not expose
  *  file descriptors. */
-static void startTunReadThread(ntvl_edge_t *eee) {
+static void startTunReadThread(ntvl_node_t *eee) {
     HANDLE hThread;
     DWORD dwThreadId;
 
@@ -1578,14 +1578,14 @@ static void startTunReadThread(ntvl_edge_t *eee) {
 
 /** Resolve the supernode IP address.
  *
- *  REVISIT: This is a really bad idea. The edge will block completely while the
+ *  REVISIT: This is a really bad idea. The node will block completely while the
  *           hostname resolution is performed. This could take 15 seconds.
  */
 static void supernode2addr(ntvl_sock_t * sn, const ntvl_sn_name_t addrIn) {
     ntvl_sn_name_t addr;
 	const char *supernode_host;
 
-    memcpy( addr, addrIn, NTVL_EDGE_SN_HOST_SIZE );
+    memcpy( addr, addrIn, NTVL_NODE_SN_HOST_SIZE );
 
     supernode_host = strtok(addr, ":");
 
@@ -1677,7 +1677,7 @@ static int scan_address( char * ip_addr, size_t addr_size,
     return retval;
 }
 
-static int run_loop(ntvl_edge_t * eee );
+static int run_loop(ntvl_node_t * eee );
 
 #define NTVL_NETMASK_STR_SIZE    16 /* dotted decimal 12 numbers + 3 dots */
 #define NTVL_MACNAMSIZ           18 /* AA:BB:CC:DD:EE:FF + NULL*/
@@ -1687,8 +1687,8 @@ static int run_loop(ntvl_edge_t * eee );
 int main(int argc, char* argv[]) {
     int     opt;
     int     local_port = 0 /* any port */;
-    int     mgmt_port = NTVL_EDGE_MGMT_PORT; /* 5644 by default */
-    char    tuntap_dev_name[NTVL_IFNAMSIZ] = "edge0";
+    int     mgmt_port = NTVL_NODE_MGMT_PORT; /* 5644 by default */
+    char    tuntap_dev_name[NTVL_IFNAMSIZ] = "node0";
     char    ip_mode[NTVL_IF_MODE_SIZE]="static";
     char    ip_addr[NTVL_NETMASK_STR_SIZE] = "";
     char    netmask[NTVL_NETMASK_STR_SIZE]="255.255.255.0";
@@ -1707,10 +1707,10 @@ int main(int argc, char* argv[]) {
     char ** effectiveargv=NULL;
     char  * linebuffer = NULL;
 
-    ntvl_edge_t eee; /* single instance for this program */
+    ntvl_node_t eee; /* single instance for this program */
 
-    if (-1 == edge_init(&eee) ) {
-        traceEvent( TRACE_ERROR, "Failed in edge_init" );
+    if (-1 == node_init(&eee) ) {
+        traceEvent( TRACE_ERROR, "Failed in node_init" );
         exit(1);
     }
 
@@ -1835,8 +1835,8 @@ int main(int argc, char* argv[]) {
         }
 
         case 'l': { /* supernode-list */
-            if ( eee.sn_num < NTVL_EDGE_NUM_SUPERNODES ) {
-                strncpy( (eee.sn_ip_array[eee.sn_num]), optarg, NTVL_EDGE_SN_HOST_SIZE);
+            if ( eee.sn_num < NTVL_NODE_NUM_SUPERNODES ) {
+                strncpy( (eee.sn_ip_array[eee.sn_num]), optarg, NTVL_NODE_SN_HOST_SIZE);
                 traceEvent(TRACE_DEBUG, "Adding supernode[%u] = %s\n", (unsigned int)eee.sn_num, (eee.sn_ip_array[eee.sn_num]) );
                 ++eee.sn_num;
             } else {
@@ -1900,10 +1900,10 @@ int main(int argc, char* argv[]) {
 #endif /* #ifdef NTVL_HAVE_DAEMON */
 
 
-    traceEvent( TRACE_NORMAL, "Starting ntvl edge %s %s", ntvl_sw_version, ntvl_sw_buildDate );
+    traceEvent( TRACE_NORMAL, "Starting ntvl node %s %s", ntvl_sw_version, ntvl_sw_buildDate );
 
 
-    for (i=0; i< NTVL_EDGE_NUM_SUPERNODES; ++i ) {
+    for (i=0; i< NTVL_NODE_NUM_SUPERNODES; ++i ) {
         traceEvent( TRACE_NORMAL, "supernode %u => %s\n", i, (eee.sn_ip_array[i]) );
     }
 
@@ -1928,7 +1928,7 @@ int main(int argc, char* argv[]) {
     }
 
     if ( (NULL == encrypt_key ) && ( 0 == strlen(eee.keyschedule)) ) {
-        traceEvent(TRACE_WARNING, "Encryption is disabled in edge.");
+        traceEvent(TRACE_WARNING, "Encryption is disabled in node.");
         eee.null_transop = 1;
     }
 
@@ -1960,12 +1960,12 @@ int main(int argc, char* argv[]) {
     if(local_port > 0) traceEvent(TRACE_NORMAL, "Binding to local port %d", (signed int)local_port);
 
     if ( encrypt_key ) {
-        if(edge_init_twofish( &eee, (uint8_t *)(encrypt_key), strlen(encrypt_key) ) < 0) {
+        if(node_init_twofish( &eee, (uint8_t *)(encrypt_key), strlen(encrypt_key) ) < 0) {
             fprintf(stderr, "Error: twofish setup failed.\n" );
             return(-1);
         }
     } else if ( strlen(eee.keyschedule) > 0 ) {
-        if (edge_init_keyschedule( &eee ) != 0 ) {
+        if (node_init_keyschedule( &eee ) != 0 ) {
             fprintf(stderr, "Error: keyschedule setup failed.\n" );
             return(-1);
         }
@@ -1983,17 +1983,17 @@ int main(int argc, char* argv[]) {
     eee.udp_mgmt_sock = open_socket(mgmt_port, 0 /* bind LOOPBACK*/ );
 
     if(eee.udp_mgmt_sock < 0) {
-        traceEvent( TRACE_ERROR, "Failed to bind management UDP port %u", (unsigned int)NTVL_EDGE_MGMT_PORT );
+        traceEvent( TRACE_ERROR, "Failed to bind management UDP port %u", (unsigned int)NTVL_NODE_MGMT_PORT );
         return(-1);
     }
 
-    traceEvent(TRACE_NORMAL, "edge started");
+    traceEvent(TRACE_NORMAL, "node started");
     update_supernode_reg(&eee, time(NULL) );
 
     return run_loop(&eee);
 }
 
-static int run_loop(ntvl_edge_t * eee ) {
+static int run_loop(ntvl_node_t * eee ) {
     int   keep_running=1;
     size_t numPurged;
     time_t lastIfaceCheck=0;
@@ -2087,7 +2087,7 @@ static int run_loop(ntvl_edge_t * eee ) {
     closesocket(eee->udp_sock);
     tuntap_close(&(eee->device));
 
-    edge_deinit( eee );
+    node_deinit( eee );
 
     return(0);
 }

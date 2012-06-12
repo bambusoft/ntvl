@@ -1,7 +1,7 @@
 ntvl (2.1.0-1) unstable; urgency=low
 
   * Split package in two.
-  * Move manpage for edge to section 8.
+  * Move manpage for node to section 8.
   * Install manpage for ntvl_v2 to section 7.
   * Create init.d files for the daemons.
 

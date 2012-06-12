@@ -75,8 +75,8 @@ endif(NTVL_OPTION_AES)
 # For Solaris (or OpenSolaris?)
 #target_link_libraries(ntvl socket nsl)
 
-add_executable(edge edge.c)
-target_link_libraries(edge ntvl)
+add_executable(node node.c)
+target_link_libraries(node ntvl)
 
 add_executable(supernode sn.c)
 target_link_libraries(supernode ntvl)
@@ -90,7 +90,7 @@ target_link_libraries(test ntvl)
 add_executable(benchmark benchmark.c)
 target_link_libraries(benchmark ntvl)
 
-install(TARGETS edge supernode tunnel
+install(TARGETS node supernode tunnel
         RUNTIME DESTINATION sbin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
@@ -100,9 +100,9 @@ install(TARGETS edge supernode tunnel
 if(DEFINED UNIX)
 add_dependencies(ntvl doc)
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/docs)
-add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/edge.8.gz
-                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/edge.8 > ${PROJECT_BINARY_DIR}/docs/edge.8.gz
-                   DEPENDS ${PROJECT_SOURCE_DIR}/edge.8
+add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/node.8.gz
+                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/node.8 > ${PROJECT_BINARY_DIR}/docs/node.8.gz
+                   DEPENDS ${PROJECT_SOURCE_DIR}/node.8
                   )
 
 add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
@@ -115,17 +115,17 @@ add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                    DEPENDS ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0
                   )
 
-add_custom_target(doc DEPENDS ${PROJECT_BINARY_DIR}/docs/edge.8.gz
+add_custom_target(doc DEPENDS ${PROJECT_BINARY_DIR}/docs/node.8.gz
                               ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
                               ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                  )
 
-set_source_files_properties(${PROJECT_BINARY_DIR}/docs/edge.8.gz
+set_source_files_properties(${PROJECT_BINARY_DIR}/docs/node.8.gz
                             ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
                             ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                             PROPERTIES GENERATED 1)
 
-install(FILES ${PROJECT_BINARY_DIR}/docs/edge.8.gz
+install(FILES ${PROJECT_BINARY_DIR}/docs/node.8.gz
         DESTINATION /usr/share/man8)
 install(FILES ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
         DESTINATION /usr/share/man1)

@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="edge"
+	Name="node"
 	ProjectGUID="{4911ADD4-08A3-4C9F-B9C9-9492DA10D01D}"
 	RootNamespace="ntvl"
 	Keyword="Win32Proj"
@@ -178,7 +178,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\edge.c"
+				RelativePath="..\..\node.c"
 				>
 			</File>
 			<File
