@@ -110,6 +110,11 @@ add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
                    DEPENDS ${PROJECT_SOURCE_DIR}/supernode.1
                   )
 
+ add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/tunnel.1.gz
+                   COMMAND gzip -c ${PROJECT_SOURCE_DIR}/tunnel.1 > ${PROJECT_BINARY_DIR}/docs/tunnel.1.gz
+                   DEPENDS ${PROJECT_SOURCE_DIR}/tunnel.1
+                  )
+
 add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                    COMMAND gzip -c ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0 > ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
                    DEPENDS ${PROJECT_SOURCE_DIR}/ntvl-v1.0.0
@@ -127,8 +132,11 @@ set_source_files_properties(${PROJECT_BINARY_DIR}/docs/node.8.gz
 
 install(FILES ${PROJECT_BINARY_DIR}/docs/node.8.gz
         DESTINATION /usr/share/man8)
+install(FILES ${PROJECT_BINARY_DIR}/docs/tunnel.1.gz
+        DESTINATION /usr/share/man1)
 install(FILES ${PROJECT_BINARY_DIR}/docs/supernode.1.gz
         DESTINATION /usr/share/man1)
 install(FILES ${PROJECT_BINARY_DIR}/docs/ntvl-v1.0.0.gz
         DESTINATION /usr/share/man7)
+
 endif(DEFINED UNIX)
