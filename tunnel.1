@@ -130,14 +130,14 @@
 .if n .ad l
 .nh
 .SH "NAME"
-nat\-traverse \- Use of UDP to traverse NAT gateways
+ntvl\-tunnel \- Use of UDP to traverse NAT gateways
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
 To create a simple text-only tunnel, use the commands
 .PP
 .Vb 2
-\&  user@left  $ nat\-traverse 40000:natgw\-of\-right:40001
-\&  user@right $ nat\-traverse 40001:natgw\-of\-left:40000
+\&  user@left  $ tunnel 40000:natgw\-of\-right:40001
+\&  user@right $ tunnel 40001:natgw\-of\-left:40000
 .Ve
 .PP
 where \f(CW40000\fR is an unused \s-1UDP\s0 port on \f(CW\*(C`left\*(C'\fR and \f(CW40001\fR is an unused port on
@@ -229,11 +229,11 @@ It's easy to setup a \s-1VPN\s0 (Virtual Private Network) by using the Point-to-
 Protocol Daemon, \f(CW\*(C`pppd\*(C'\fR:
 .PP
 .Vb 7
-\&  root@left # nat\-traverse \e
+\&  root@left # tunnel \e
 \&      \-\-cmd="pppd updetach noauth passive notty \e
 \&             ipparam vpn 10.0.0.1:10.0.0.2"
 \&      40000:natgw\-of\-right:40001
-\&  root@right # nat\-traverse \e
+\&  root@right # tunnel \e
 \&      \-\-cmd="pppd nodetach notty noauth"
 \&      40001:natgw\-of\-left:40000
 .Ve
@@ -254,9 +254,9 @@ arbitrary \s-1UDP\s0 or \s-1TCP\s0 port of the remote host, similar to \f(CW\*(C
 \&\-R\*(C'\fR:
 .PP
 .Vb 4
-\&  user@left  $ nat\-traverse 10001:natgw\-of\-right:10002 \e
+\&  user@left  $ tunnel 10001:natgw\-of\-right:10002 \e
 \&        \-\-cmd="nc \-vlp 20000"
-\&  user@right $ nat\-traverse 10002:natgw\-of\-left:10001 \e
+\&  user@right $ tunnel 10002:natgw\-of\-left:10001 \e
 \&        \-\-cmd="nc \-vlp 22"
 .Ve
 .PP
@@ -289,13 +289,13 @@ accordingly, for example:
 \&
 \&  # Command to execute on left resp. right:
 \&  root@left  # until \e
-\&                 nat\-traverse \-\-quit\-after\-connect 60001:right:60001 \e
+\&                 tunnel \-\-quit\-after\-connect 60001:right:60001 \e
 \&               do \e
 \&                 sleep 5 \e
 \&               done; \e
 \&               openvpn [...]
 \&  root@right # until \e
-\&                 nat\-traverse \-\-quit\-after\-connect 60001:left:60001 \e
+\&                 tunnel \-\-quit\-after\-connect 60001:left:60001 \e
 \&               do \e
 \&                 sleep 5 \e
 \&               done; \e
@@ -346,19 +346,23 @@ The Point-to-Point Protocol (\s-1PPP\s0). W. Simpson, Ed.. July 1994.  (Obsolete
 .IX Item "<http://ppp.samba.org/>"
 Website of Paul's \s-1PPP\s0 Package (open source implementation of the
 Point-to-Point Protocol (\s-1PPP\s0) on Linux and Solaris)
-.IP "<German talk about ntvl-tunnel at http://linide.sourceforge.net/nat\-traverse/nat\-traverse\-talk.pdf>" 4
-.IX Item "<German talk about ntvl-tunnel at http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf>"
+.IP "<German talk about nat-traverse at http://linide.sourceforge.net/nat\-traverse/nat\-traverse\-talk.pdf>" 4
+.IX Item "<German talk about nat-traverse at http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf>"
 Dieser Vortrag zeigt, wie man einen Tunnel zwischen zwei Computern, die
 beide hinter NAT-Gateways sitzen, hinbekommt. Dazu wird ein neues Programm
 vorgestellt, welches sowohl einfache TastendrA\*~Xcke an die Gegenseite
 weiterleiten, als auch beliebige Programme mit Verbindungen zur Gegenseite
 starten kann. Damit ist ein einfaches \s-1VPN\s0 schnell aufgebaut.
+.IP "<Spanish talk about ntvl at http://ntvl.bambusoft.mx>" 4
+.IX Item "<Spanish talk about ntvl at http://ntvl.bambusoft.mx>"
+Utileria para realizar un tunel entre dos equipos detras de firewalls, gatways
+usando NAT.
 .SH "AUTHOR"
 .IX Header "AUTHOR"
-Copyright (C) 2005, 2012 Ingo Blechschmidt, <iblech@web.de>.
+Copyright (C) 2012 Mario Rodriguez, <collab@bambusoft.com>
 .PP
-You may want to visit nat-traverse's Freecode project page,
-<http://freecode.com/projects/nat\-traverse/>.
+You may want to visit ntvl's project page,
+<http://ntvl.bambusoft.mx>.
 .SH "LICENSE"
 .IX Header "LICENSE"
 This program is free software; you can redistribute it and/or modify it under
