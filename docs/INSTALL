@@ -12,6 +12,10 @@ or
 
 $ make PREFIX=/usr/local install
 
+To know options
+
+$ make help
+
 
 RPM Package
 -----------
