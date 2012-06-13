@@ -3,7 +3,7 @@ Name: ntvl
 Version: 1.0.0
 Release: 1
 License: GPLv3
-Vendor: bambusoft.com
+Vendor: bambusoft
 Group: None
 URL: http://ntvl.bambusoft.mx
 Source0: %{name}-%{version}.tar.gz

@@ -229,7 +229,7 @@ void hexdump(const uint8_t * buf, size_t len) {
 void print_ntvl_version() {
   printf(	"Welcome to ntvl v.%s for %s\n"
 			"Built on %s\n"
-			"Copyright 2012 - http://www.bambusoft.com\n\n",
+			"Copyright 2012 - http://ntvl.bambusoft.mx\n\n",
 			ntvl_sw_version, ntvl_sw_osName, ntvl_sw_buildDate);
 }
 
