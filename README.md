@@ -24,13 +24,13 @@ The main ntvl design features are:
   even if running on a private network. Firewalls no longer are an obstacle to direct communications at IP level.
 - NTVL networks are not meant to be self-contained, but it is possible to route traffic across ntvl and non-ntvl networks.
 
-The natvl architecture is based on two components:
+The natvl architecture is based on three components:
 
 nodes:
 	Applications installed on user PCs that allow the natvl network to be build.
 	Practically each node creates a tun/tap device that is then the entry point to the ntvl network.
 	
-an supernode:
+supernode:
 	It is used by nodes at startup or for reaching nodes behind symmetrical firewalls.
 	This application is basically a directory register and a packet router for those nodes that cannot talk directly.
 	
@@ -47,4 +47,4 @@ This work is based on the following projects:
 	udp-tunnel at http://code.google.com/p/udptunnel/
 	n2n Layer Two Peer to Peer VPN project at http://www.ntop.org/products/n2n/
 
-Thanks to Ingo Blechschmidt, Samy Kamkar, Daniel Meekins,Luca Deri, Richard Andrews and many others for their initial work.
+Thanks to Ingo Blechschmidt, Samy Kamkar, Daniel Meekins, Luca Deri, Richard Andrews and many others for their initial work.
