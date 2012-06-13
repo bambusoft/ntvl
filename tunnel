@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # ntvl-tunnel is a derivated work of the original
 # nat-traverse -- Use of UDP to traverse NAT gateways
-# Copyright (C) 2005, 2012 Ingo Blechschmidt <iblech@web.de>
+# Copyright (C) 2005 Ingo Blechschmidt <iblech@web.de>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -27,28 +27,38 @@ use IO::Socket::INET;
 use Getopt::Long;
 
 # More elegant use constant {...} not available in Perl 5.6.x.
-use constant GARBAGE_MAGIC => "nat-traverse-garbage";
-use constant ACK_MAGIC     => "nat-traverse-ackacka";
+use constant GARBAGE_MAGIC => "ntvl-tunnel-garbage";
+use constant ACK_MAGIC     => "ntvl-tunnel-ackacka";
 use constant PACKET_SIZE   => 8 * 1024;
 
-$version="1.0.0";
+sub getVersion {
+	my $version='1.0.0';
+	return $version;
+}
 
 sub debug($);
 
-# ARGV parsing.
+################
+# ARGV parsing #
+################
 GetOptions(
   "window=i"           => \(my $WINDOW  = 10),
   "timeout=i"          => \(my $TIMEOUT = 10),
   "quit-after-connect" => \my $QUIT_AFTER_CONNECT,
   "cmd=s"              => \my $CMD,
-  "version"            => sub { print "ntvl-tunnel $version\n"; exit },
+  "version"            => sub { print "ntvl-tunnel v" . getVersion() . "\n"; exit },
   "help"               => \&usage,
 ) or usage();
+
 usage() unless @ARGV == 1;
+
 my ($LPORT, $PEER, $RPORT) = split /:/, $ARGV[0];
 usage() unless $LPORT =~ /^\d+/ and $RPORT =~ /^\d+/ and $PEER;
 
+
+#####################################
 # Helper sub to create our socket...
+#####################################
 sub sockgen {
   debug "Creating socket localhost:$LPORT <-> $PEER:$RPORT... ";
   my $sock = IO::Socket::INET->new(
@@ -63,7 +73,9 @@ sub sockgen {
   return $sock;
 }
 
+#########################################
 # Helper sub to wait for a given string.
+#########################################
 sub waitfor {
   my ($sock, $match) = @_;
 
@@ -76,8 +88,10 @@ sub waitfor {
   }
 }
 
+############################################################################
 # Initial phase: Sending of initial packets to make the firewalls think the
 # packets are replies.
+############################################################################
 my $sock = sockgen();
 debug "Sending $WINDOW initial packets... ";
 for(1..$WINDOW) {
@@ -88,7 +102,9 @@ for(1..$WINDOW) {
 syswrite $sock, ACK_MAGIC;
 debug " done.\n";
 
+#################################################################
 # Waiting for ACK packet so we see the connection is established.
+#################################################################
 debug "Waiting for ACK (timeout: $TIMEOUT\Es)... ";
 {
   local $SIG{ALRM} = sub { die " timeout.\n" };
@@ -103,7 +119,9 @@ debug "Connection established.\n";
 
 debug "Exiting.\n" and exit 0 if $QUIT_AFTER_CONNECT;
 
+##############################################################
 # Either exec() $CMD or relay STDIN and STDOUT appropriately.
+##############################################################
 if(defined $CMD) {
   debug "Redirecting STDIN and STDOUT... ";
   open STDOUT, ">&", $sock or die "Couldn't redirect STDOUT: $!\n";
@@ -143,7 +161,9 @@ if(defined $CMD) {
   close $sock or die "Couldn't close socket: $!\n";
 }
 
+#########################
 # Nice debugging output.
+#########################
 {
   my $fresh;
   sub debug($) {
@@ -156,13 +176,14 @@ if(defined $CMD) {
   }
 }
 
+######################
 # Display usage info.
-sub usage { print STDERR <<'USAGE'; exit }
-ntvl-tunnel $version -- Use of UDP to traverse NAT gateways
+######################
+sub usage { print 'ntvl-tunnel v'.getVersion()." -- Use of UDP to traverse NAT gateways\n"; print STDERR <<'USAGE'; exit }
 
 Usage:
-  user@left  $ nat-traverse [options] port1:natgw-of-right:port2
-  user@right $ nat-traverse [options] port2:natgw-of-left:port1
+  user@left  $ tunnel [options] port1:natgw-of-right:port2
+  user@right $ tunnel [options] port2:natgw-of-left:port1
   where
     port1, port2:       Two unused UDP ports
     left, right:        The hosts behind NAT gateways you want to connect
@@ -177,48 +198,48 @@ Available options:
                         the socket.
                         If no command is specified, everything you type is
                         relayed to the other end of the socket, i.e.
-                        nat-traverse degrades to netcat.
-  --quit-after-connect  Quit nat-traverse after the tunnel was established
+                        ntvl-tunnel degrades to netcat.
+  --quit-after-connect  Quit ntvl-tunnel after the tunnel was established
                         successfully.
   --version             Display version information.
   --help                This help.
 
 Options may be abbreviated to uniqueness.
-Run "perldoc nat-traverse" for more information.
+Run "perldoc ntvl-tunnel" for more information.
 USAGE
 
 
 =head1 NAME
 
-nat-traverse - Use of UDP to traverse NAT gateways
+ntvl-tunnel - Use of UDP to traverse NAT gateways
 
 =head1 SYNOPSIS
 
 To create a simple text-only tunnel, use the commands
 
-  user@left  $ nat-traverse 40000:natgw-of-right:40001
-  user@right $ nat-traverse 40001:natgw-of-left:40000
+  user@left  $ tunnel 40000:natgw-of-right:40001
+  user@right $ tunnel 40001:natgw-of-left:40000
 
 where C<40000> is an unused UDP port on C<left> and C<40001> is an unused port on
 C<right>. See L</EXAMPLES> for more.
 
 =head1 VERSION
 
-This document describes nat-traverse v0.5.
+This document describes ntvl-tunnel
 
 =head1 DESCRIPTION
 
-nat-traverse establishes connections between nodes which are behind NAT
+ntvl-tunnel establishes connections between nodes which are behind NAT
 gateways, i.e. hosts which do I<not> have public IP addresses. Additionally,
-you can setup a small VPN by using pppd on top of nat-traverse (see
-L</EXAMPLES>).  nat-traverse does I<not> need an external server on the
+you can setup a small VPN by using pppd on top of ntvl-tunnel (see
+L</EXAMPLES>).  ntvl-tunnel does I<not> need an external server on the
 Internet, and it isn't necessary to reconfigure the involved NAT gateways,
-either. I<nat-traverse works out-of-the-box.>
+either. I<ntvl-tunnel works out-of-the-box.>
 
 See L</TECHNIQUE> for how this is achieved.
 
-Limitation: nat-traverse does not work with gateways which change the port
-numbers. This is a fundamental problem of nat-traverse's design, as the changed
+Limitation: ntvl-tunnel does not work with gateways which change the port
+numbers. This is a fundamental problem of ntvl-tunnel's design, as the changed
 port numbers are (in general) not predictable.
 
 =head1 OPTIONS
@@ -240,8 +261,8 @@ Runs the specified command after establishing the connection.
 The command will be run with its STDIN and STDOUT bound to the socket, i.e.
 everything the command writes to STDOUT will be forwarded to the peer.
 
-If no command is specified, nat-traverse will relay input from STDIN to the peer
-and vice versa, i.e. nat-traverse degrades to netcat.
+If no command is specified, ntvl-tunnel will relay input from STDIN to the peer
+and vice versa, i.e. ntvl-tunnel degrades to netcat.
 
 =item C<--window=I<10>>
 
@@ -254,14 +275,14 @@ Sets the maximum number of seconds to wait for an acknowledgement by the peer.
 
 =item C<--quit-after-connect>
 
-Quits nat-traverse after the tunnel has been established successfully.
+Quits ntvl-tunnel after the tunnel has been established successfully.
 
-nat-traverse returns a non-C<0> statuscode to indicate that it wasn't able to
+ntvl-tunnel returns a non-C<0> statuscode to indicate that it wasn't able to
 establish the tunnel.
 
 C<--quit-after-connect> is useful if you want another program to use the
 tunnel. For example, you could configure OpenVPN to use the the same ports as
-nat-traverse -- thus OpenVPN would be able to cross NAT gateways.
+ntvl-tunnel -- thus OpenVPN would be able to cross NAT gateways.
 
 =item C<--version>, C<--help>
 
@@ -269,32 +290,32 @@ nat-traverse -- thus OpenVPN would be able to cross NAT gateways.
 
 =head1 TECHNIQUE
 
-nat-traverse establishes connections between hosts behind NAT gateways without need
+ntvl-tunnel establishes connections between hosts behind NAT gateways without need
 for reconfiguration of the involved NAT gateways.
 
 =over
 
 =item 1.
 
-Firstly, nat-traverse on host C<left> sends garbage UDP packets to the NAT gateway
+Firstly, ntvl-tunnel on host C<left> sends garbage UDP packets to the NAT gateway
 of C<right>. These packets are, of course, discarded by the firewall.
 
 =item 2.
 
-Then C<right>'s nat-traverse sends garbage UDP packets to the NAT gateway of
+Then C<right>'s ntvl-tunnel sends garbage UDP packets to the NAT gateway of
 C<left>. These packets are I<not> discarded, as C<left>'s NAT gateway thinks
 these packets are replies to the packets sent in step 1!
 
 =item 3.
 
-C<left>'s nat-traverse continues to send garbage packets to C<right>'s NAT gateway.
+C<left>'s ntvl-tunnel continues to send garbage packets to C<right>'s NAT gateway.
 These packets are now not dropped either, as the NAT gateway thinks the packets
 are replies to the packets sent in step 2.
 
 =item 4.
 
 Finally, both hosts send an acknowledgement packet to signal readiness. When
-these packets are received, the connection is established and nat-traverse can
+these packets are received, the connection is established and ntvl-tunnel can
 either relay STDIN/STDOUT to the socket or execute a program.
 
 =back
@@ -306,17 +327,17 @@ either relay STDIN/STDOUT to the socket or execute a program.
 It's easy to setup a VPN (Virtual Private Network) by using the Point-to-Point
 Protocol Daemon, C<pppd>:
 
-  root@left # nat-traverse \
+  root@left # tunnel \
       --cmd="pppd updetach noauth passive notty \
              ipparam vpn 10.0.0.1:10.0.0.2"
       40000:natgw-of-right:40001
-  root@right # nat-traverse \
+  root@right # tunnel \
       --cmd="pppd nodetach notty noauth"
       40001:natgw-of-left:40000
 
 C<pppd> creates a new interface, typically C<ppp0>.  Using this interface, you
 can ping C<10.0.0.1> or C<10.0.0.2>. As you can see, C<pppd> upgrades the
-data-only tunnel nat-traverse provides to a full IP tunnel. Thus you can
+data-only ntvl-tunnel provides to a full IP tunnel. Thus you can
 establish reliable TCP connections over the tunnel, even though the tunnel uses
 UDP!  Furthermore, you could even add IPv6 addresses to C<ppp0> by running C<ip
 -6 addr add...>!
@@ -330,9 +351,9 @@ You can use C<netcat> to forward one of your local UDP or TCP ports to an
 arbitrary UDP or TCP port of the remote host, similar to C<ssh -L> or C<ssh
 -R>:
 
-  user@left  $ nat-traverse 10001:natgw-of-right:10002 \
+  user@left  $ tunnel 10001:natgw-of-right:10002 \
         --cmd="nc -vlp 20000"
-  user@right $ nat-traverse 10002:natgw-of-left:10001 \
+  user@right $ tunnel 10002:natgw-of-left:10001 \
         --cmd="nc -vlp 22"
 
 As soon as the tunnel is established (using UDP ports C<10001> and C<10002>),
@@ -344,14 +365,14 @@ C<22>):
 
 But do note that you lose the reliability of TCP in this example, as the actual
 data is transported via UDP; so this is only a toy example. If you want
-reliable streams, use PPP on top of nat-traverse, as described above.
+reliable streams, use PPP on top of ntvl-tunnel, as described above.
 
 =head2 Setup of a VPN with OpenVPN
 
-You can use L<OpenVPN|http://openvpn.net/> over nat-traverse if you want to
+You can use L<OpenVPN|http://openvpn.net/> over ntvl-tunnel if you want to
 have a I<secure> VPN.
 
-Using OpenVPN over nat-traverse requires only one change to OpenVPN's
+Using OpenVPN over ntvl-tunnel requires only one change to OpenVPN's
 configuration file, presuming that you don't want to use OpenVPN's multi-client
 mode: You have to adjust the C<code> and C<lport> options
 accordingly, for example:
@@ -362,25 +383,25 @@ accordingly, for example:
 
   # Command to execute on left resp. right:
   root@left  # until \
-                 nat-traverse --quit-after-connect 60001:right:60001 \
+                 tunnel --quit-after-connect 60001:right:60001 \
                do \
                  sleep 5 \
                done; \
                openvpn [...]
   root@right # until \
-                 nat-traverse --quit-after-connect 60001:left:60001 \
+                 tunnel --quit-after-connect 60001:left:60001 \
                do \
                  sleep 5 \
                done; \
                openvpn [...]<!--
 
 The C<until> loop ensures that OpenVPN will not be started before
-nat-traverse was able to establish the connection. Michael Kugele
+ntvl-tunnel was able to establish the connection. Michael Kugele
 (C<michael (at) kugele.net>) also reported a way to still be able to
-use OpenVPN's multi-client mode with nat-traverse: As all instances of
-nat-traverse have to use unique ports (because a connection is identified by
+use OpenVPN's multi-client mode with ntvl-tunnel: As all instances of
+ntvl-tunnel have to use unique ports (because a connection is identified by
 the source/destination port combination), you've to use redirection rules to
-redirect the ports used by nat-traverse to the port the OpenVPN daemon listens
+redirect the ports used by ntvl-tunnel to the port the OpenVPN daemon listens
 on:
 
   iptables -t nat -A PREROUTING -p udp \
@@ -388,16 +409,16 @@ on:
   iptables -t nat -A PREROUTING -p udp \
     --dport $PORT -j REDIRECT --to-port $LPORT
 
-C<$LPORT> specifies the source port nat-traverse uses on the server
+C<$LPORT> specifies the source port ntvl-tunnel uses on the server
 side, and C<$HOST:$PORT> is the address of the OpenVPN server.)
 
 =head1 LIMITATIONS
 
-Only IPv4 is supported, nat-traverse won't work with IPv6 addresses. Drop me a
+Only IPv4 is supported, ntvl-tunnel won't work with IPv6 addresses. Drop me a
 note if you do need IPv6 support.
 
-nat-traverse does not work with gateways which change the port numbers. This
-is a fundamental problem of nat-traverse's design, as the changed port numbers
+ntvl-tunnel does not work with gateways which change the port numbers. This
+is a fundamental problem of ntvl-tunnel's design, as the changed port numbers
 are (in general) not predictable.
 
 =head1 SEE ALSO
@@ -427,7 +448,7 @@ RFC1548) (Updated by RFC2153) (Also STD0051) (Status: STANDARD)
 Website of Paul's PPP Package (open source implementation of the
 Point-to-Point Protocol (PPP) on Linux and Solaris)
 
-=item L<German talk about nat-traverse at
+=item L<German talk about ntvl-tunnel at
 http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf|http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf>
 
 Dieser Vortrag zeigt, wie man einen Tunnel zwischen zwei Computern, die
@@ -442,7 +463,7 @@ starten kann. Damit ist ein einfaches VPN schnell aufgebaut.
 
 Copyright (C) 2005, 2012 Ingo Blechschmidt, E<lt>iblech@web.deE<gt>.
 
-You may want to visit nat-traverse's Freecode project page,
+You may want to visit nat-traverse Freecode project page,
 L<http://freecode.com/projects/nat-traverse/>.
 
 =head1 LICENSE
