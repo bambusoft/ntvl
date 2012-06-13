@@ -65,6 +65,16 @@ APPS+=supernode
 
 MANFILES=node.8.gz supernode.1.gz ntvl-v1.0.0.gz tunnel.1
 
+help:
+	@echo ""
+	@echo "all 		- compile all programs"
+	@echo "node		- compile node program"
+	@echo "supernode	- compile supernode program"
+	@echo "clean		- clean compile environment "
+	@echo "install		- put executables in /usr/sbin and manuals on /usr/share/man"
+	@echo "uninstall	- remove executables an manuals from directories"
+	@echo ""
+
 all: $(APPS) $(MANFILES)
 
 node: node.c $(NTVL_LIB) ntvl_wire.h ntvl.h Makefile
@@ -105,3 +115,13 @@ install: node supernode node.8.gz supernode.1.gz ntvl-v1.0.0.gz
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) tunnel.1 $(MAN1DIR)/
 	$(INSTALL_DOC) ntvl-v1.0.0.gz $(MAN7DIR)/
+
+uninstall:
+# SBINDIR and MAN?DIR preserved
+	rm -f $(SBINDIR)/node
+	rm -f $(SBINDIR)/supernode
+	rm -f $(SBINDIR)/tunnel
+	rm -f $(MAN8DIR)/node.8.gz
+	rm -f $(MAN1DIR)/supernode.1.gz
+	rm -f $(MAN1DIR)/tunnel.1.gz
+	rm -f $(MAN7DIR)/ntvl-v1.0.0.gz 
