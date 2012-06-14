@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+# TODO: Read /etc/ntvld.conf configuration file and set local vars
+
+# START
+	# TODO: If supernode enable call supernode
+	# TODO: If nodes>0 for (1..nodes) call node
+	# TODO: If tunnels>0 for (1..tunnles) call tunnel
+
+# STOP
+	# TODO: Kill supernode
+	# TODO: If nodes>0 for (1..nodes) kill node
+	# TODO: If tunnels>0 for (1..tunnles) kill tunnel
+
+# RESTART
+	# TODO: Call STOP
+	# TODO: Call START
