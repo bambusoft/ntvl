@@ -1,17 +1,24 @@
-#!/usr/bin/perl
+#
+# This program is not a daemon actually...
+# Each supernode, node and tunnel instances act as a stand alone deamons, the purpose of ntvld is automate the process based on a config file
+#
 
-# TODO: Read /etc/ntvld.conf configuration file and set local vars
+# TODO: Read /etc/ntvl/ntvld.conf configuration file and set local vars
+# Called from /etc/init.d/ntvl
 
 # START
-	# TODO: If supernode enable call supernode
-	# TODO: If nodes>0 for (1..nodes) call node
-	# TODO: If tunnels>0 for (1..tunnles) call tunnel
+	# TODO: Check config file
+	# TODO: Log start messages
+	# TODO: Check tcp_wrappers allow & deny
+	# TODO: If supernode enabled call supernode and store pid in /run/ntvl/supernode.pid
+	# TODO: If nodes>0 for (1..nodes) call node and store pid in /run/ntvl/node.x.pid
+	# TODO: If tunnels>0 for (1..tunnles) call tunnel and store pid in /run/ntvl/tunnel.x.pid
 
 # STOP
-	# TODO: Kill supernode
-	# TODO: If nodes>0 for (1..nodes) kill node
-	# TODO: If tunnels>0 for (1..tunnles) kill tunnel
+	# TODO: Log stop messages
+	# TODO: Obtain supernode pid and Kill supernode
+	# TODO: while node.x.pid kill node
+	# TODO: while tunnel.x.pid kill tunnel
 
-# RESTART
-	# TODO: Call STOP
-	# TODO: Call START
+# STATUS
+	# TODO: Check status and report
