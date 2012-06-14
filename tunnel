@@ -18,6 +18,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
+# TODO: Translate from perl to C, otherwise we need to install perl interpeter which overloads if installed in embedded systems.
+
 use warnings;
 use strict;
 
