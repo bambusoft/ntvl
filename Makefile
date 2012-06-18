@@ -46,6 +46,7 @@ MANDIR?=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
+RUNDIR=/run/ntvl
 
 NTVL_LIB=ntvl.a
 NTVL_OBJS=ntvl.o ntvl_keyfile.o wire.o minilzo.o twofish.o \
@@ -107,7 +108,7 @@ clean:
 
 install: node supernode node.8.gz supernode.1.gz ntvl-v1.0.0.gz
 	echo "MANDIR=$(MANDIR)"
-	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
+	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(RUNDIR)
 	$(INSTALL_PROG) supernode $(SBINDIR)/
 	$(INSTALL_PROG) node $(SBINDIR)/
 	$(INSTALL_PROG) tunnel $(SBINDIR)/
