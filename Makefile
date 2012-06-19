@@ -46,6 +46,7 @@ MANDIR?=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
+ETCDIR=/etc/ntvl
 RUNDIR=/run/ntvl
 
 NTVL_LIB=ntvl.a
@@ -63,6 +64,7 @@ endif
 
 APPS=node
 APPS+=supernode
+APPS+=ntvld
 
 MANFILES=node.8.gz supernode.1.gz ntvl-v1.0.0.gz tunnel.1
 
@@ -71,6 +73,7 @@ help:
 	@echo "all 		- compile all programs"
 	@echo "node		- compile node program"
 	@echo "supernode	- compile supernode program"
+	@echo "ntvld	- compile ntvld program"
 	@echo "clean		- clean compile environment "
 	@echo "install		- put executables in /usr/sbin and manuals on /usr/share/man"
 	@echo "uninstall	- remove executables an manuals from directories"
@@ -86,6 +89,9 @@ test: test.c $(NTVL_LIB) ntvl_wire.h ntvl.h Makefile
 
 supernode: sn.c $(NTVL_LIB) ntvl.h Makefile
 	$(CC) $(CFLAGS) sn.c $(NTVL_LIB) $(LIBS_SN) -o supernode
+	
+ntvld: ntvld.c minIni.h Makefile
+	$(CC) $(CFLAGS) minIni.c ntvld.c -o ntvld
 
 benchmark: benchmark.c $(NTVL_LIB) ntvl_wire.h ntvl.h Makefile
 	$(CC) $(CFLAGS) benchmark.c $(NTVL_LIB) $(LIBS_SN) -o benchmark
@@ -106,21 +112,24 @@ version.o: Makefile
 clean:
 	rm -rf $(NTVL_OBJS) $(NTVL_LIB) $(APPS) $(MANFILES) test *.dSYM *~
 
-install: node supernode node.8.gz supernode.1.gz ntvl-v1.0.0.gz
+install: node supernode ntvld node.8.gz supernode.1.gz tunnel.1 ntvl-v1.0.0.gz
 	echo "MANDIR=$(MANDIR)"
-	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(RUNDIR)
+	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(ETCDIR) $(RUNDIR)
 	$(INSTALL_PROG) supernode $(SBINDIR)/
 	$(INSTALL_PROG) node $(SBINDIR)/
+	$(INSTALL_PROG) ntvld $(SBINDIR)/
 	$(INSTALL_PROG) tunnel $(SBINDIR)/
 	$(INSTALL_DOC) node.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) tunnel.1 $(MAN1DIR)/
 	$(INSTALL_DOC) ntvl-v1.0.0.gz $(MAN7DIR)/
+	$(INSTALL_DOC) config/ntvl-default.config $(ETCDIR)/ntvl.config	
 
 uninstall:
 # SBINDIR and MAN?DIR preserved
 	rm -f $(SBINDIR)/node
 	rm -f $(SBINDIR)/supernode
+	rm -f $(SBINDIR)/ntvld 
 	rm -f $(SBINDIR)/tunnel
 	rm -f $(MAN8DIR)/node.8.gz
 	rm -f $(MAN1DIR)/supernode.1.gz
