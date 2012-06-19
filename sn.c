@@ -8,14 +8,12 @@
  *    Struan Bartlett
  */
 
-
 #include "ntvl.h"
 
+#define NTVL_SN_MGMT_PORT		1970
+#define NTVL_SN_LPORT_DEFAULT	1971
 
-#define NTVL_SN_LPORT_DEFAULT 7654
-#define NTVL_SN_PKTBUF_SIZE   2048
-
-#define NTVL_SN_MGMT_PORT                5645
+#define NTVL_SN_PKTBUF_SIZE		2048
 
 
 struct sn_stats {
@@ -30,6 +28,9 @@ struct sn_stats {
 
 typedef struct sn_stats sn_stats_t;
 
+/* ******************* */
+/* Supernode structure */
+/* ******************* */
 struct ntvl_sn {
     time_t              start_time;     /* Used to measure uptime. */
     sn_stats_t          stats;
@@ -47,9 +48,10 @@ static int try_forward( ntvl_sn_t * sss, const ntvl_common_t * cmn, const ntvl_m
 static int try_broadcast( ntvl_sn_t * sss, const ntvl_common_t * cmn, const ntvl_mac_t srcMac, const uint8_t * pktbuf, size_t pktsize );
 
 
-
+/* *********************************** */
 /** Initialise the supernode structure */
-static int init_sn( ntvl_sn_t * sss ) {
+/* *********************************** */
+static int init_sn_structure( ntvl_sn_t * sss ) {
 #ifdef WIN32
     initWin32();
 #endif
@@ -64,9 +66,11 @@ static int init_sn( ntvl_sn_t * sss ) {
     return 0; /* OK */
 }
 
-/** Deinitialise the supernode structure and deallocate any memory owned by
- *  it. */
-static void deinit_sn( ntvl_sn_t * sss ) {
+/* **************************************************************************** */
+/** Deinitialise the supernode structure and deallocate any memory owned by it. */
+/* **************************************************************************** */
+static void deinit_sn_structure( ntvl_sn_t * sss ) {
+
     if (sss->sock >= 0) closesocket(sss->sock);
     sss->sock=-1;
 
@@ -521,11 +525,13 @@ static const struct option long_options[] = {
   { NULL,              0,                 NULL,  0  }
 };
 
+/* ************************************** */
 /** Main program entry point from kernel. */
+/* ************************************** */
 int main( int argc, char * const argv[] ) {
     ntvl_sn_t sss;
 
-    init_sn( &sss );
+    init_sn_structure( &sss );
 
     {
         int opt;
@@ -652,7 +658,7 @@ static int run_loop( ntvl_sn_t * sss ) {
 
     } /* while */
 
-    deinit_sn( sss );
+    deinit_sn_structure( sss );
 
     return 0;
 }
