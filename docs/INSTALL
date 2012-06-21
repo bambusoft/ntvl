@@ -1,3 +1,11 @@
+REQUIREMENTS
+- openssl/aes.h
+- libcrypt
+- pgrep
+- tunctl
+
+
+
 INSTALL
 
 To build the programs:
