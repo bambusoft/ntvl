@@ -12,3 +12,4 @@ sed -i 	-e "s/FULL-PACKAGE-NAME/$NTVL/" \
 		$NTVL_DIR/configure.ac
 autoconf $NTVL_DIR/configure.ac > $NTVL_DIR/configure
 chmod +x $NTVL_DIR/configure
+# TODO: use ./configure to detect headers and libraries dependnecies, example AES enabled (libcrypt)
