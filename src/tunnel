@@ -1,0 +1,484 @@
+#!/usr/bin/perl
+# ntvl-tunnel is a derivated work of the original
+# nat-traverse -- Use of UDP to traverse NAT gateways
+# Copyright (C) 2005 Ingo Blechschmidt <iblech@web.de>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+# TODO: Translate from perl to C, otherwise we need to install perl interpeter which overloads if installed in embedded systems.
+
+use warnings;
+use strict;
+
+use v5.6.0;
+
+use IO::Socket::INET;
+use Getopt::Long;
+
+# More elegant use constant {...} not available in Perl 5.6.x.
+use constant GARBAGE_MAGIC => "ntvl-tunnel-garbage";
+use constant ACK_MAGIC     => "ntvl-tunnel-ackacka";
+use constant PACKET_SIZE   => 8 * 1024;
+
+sub getVersion {
+	my $version='1.0.0';
+	return $version;
+}
+
+sub debug($);
+
+################
+# ARGV parsing #
+################
+GetOptions(
+  "window=i"           => \(my $WINDOW  = 10),
+  "timeout=i"          => \(my $TIMEOUT = 10),
+  "quit-after-connect" => \my $QUIT_AFTER_CONNECT,
+  "cmd=s"              => \my $CMD,
+  "version"            => sub { print "ntvl-tunnel v" . getVersion() . "\n"; exit },
+  "help"               => \&usage,
+) or usage();
+
+usage() unless @ARGV == 1;
+
+my ($LPORT, $PEER, $RPORT) = split /:/, $ARGV[0];
+usage() unless $LPORT =~ /^\d+/ and $RPORT =~ /^\d+/ and $PEER;
+
+
+#####################################
+# Helper sub to create our socket...
+#####################################
+sub sockgen {
+  debug "Creating socket localhost:$LPORT <-> $PEER:$RPORT... ";
+  my $sock = IO::Socket::INET->new(
+    PeerHost  => $PEER,
+    PeerPort  => $RPORT,
+    LocalPort => $LPORT,
+    Proto     => "udp",
+    ReuseAddr => 1,
+  ) or die "Couldn't create socket: $!\n";
+  debug "done.\n";
+
+  return $sock;
+}
+
+#########################################
+# Helper sub to wait for a given string.
+#########################################
+sub waitfor {
+  my ($sock, $match) = @_;
+
+  while(1) {
+    debug ".";
+    my $got;
+    defined(sysread $sock, $got, length $match) or
+      die "Couldn't read from socket: $!\n";
+    last if defined $got and $got eq $match;
+  }
+}
+
+############################################################################
+# Initial phase: Sending of initial packets to make the firewalls think the
+# packets are replies.
+############################################################################
+my $sock = sockgen();
+debug "Sending $WINDOW initial packets... ";
+for(1..$WINDOW) {
+  debug ".";
+  syswrite $sock, GARBAGE_MAGIC;
+  sleep 1;
+}
+syswrite $sock, ACK_MAGIC;
+debug " done.\n";
+
+#################################################################
+# Waiting for ACK packet so we see the connection is established.
+#################################################################
+debug "Waiting for ACK (timeout: $TIMEOUT\Es)... ";
+{
+  local $SIG{ALRM} = sub { die " timeout.\n" };
+  alarm $TIMEOUT;
+  waitfor($sock, ACK_MAGIC);
+  alarm 0;
+}
+debug " done.\n";
+
+# :)
+debug "Connection established.\n";
+
+debug "Exiting.\n" and exit 0 if $QUIT_AFTER_CONNECT;
+
+##############################################################
+# Either exec() $CMD or relay STDIN and STDOUT appropriately.
+##############################################################
+if(defined $CMD) {
+  debug "Redirecting STDIN and STDOUT... ";
+  open STDOUT, ">&", $sock or die "Couldn't redirect STDOUT: $!\n";
+  open STDIN,  "<&", $sock or die "Couldn't redirect STDIN: $!\n";
+  debug "done.\n";
+  debug "exec()ing \"$CMD\"...\n";
+  exec $CMD or die "Couldn't exec() \"$CMD\": $!\n";
+} else {
+  debug "Type ahead.\n";
+  $SIG{CHLD} = "IGNORE";
+  my $pid = fork;
+  die "Couldn't fork: $!\n" unless defined $pid;
+
+  if($pid) {
+    # Parent -- read from STDIN and to the socket.
+    my $buf;
+    while(1) {
+      my $ret = sysread STDIN, $buf, PACKET_SIZE;
+      defined $ret or die "Couldn't read from STDIN: $!\n";
+      $ret         or last;
+      syswrite $sock, $buf or die "Couldn't write to socket: $!\n";
+    }
+
+    # Exit on ^D.
+    debug "Exiting; sending SIGTERM to child process... ";
+    kill 15 => $pid or die "Couldn't send SIGTERM to child process (PID $pid): $!\n";
+    debug "done.\n";
+
+  } else {
+    # Child -- print what's "in the socket".
+    print($_) or die "Couldn't write to STDOUT: $!\n" while
+      defined(sysread $sock, $_, PACKET_SIZE) or
+        die "Couldn't read from socket: $!\n";
+  }
+
+  # Clean up after ourselves.
+  close $sock or die "Couldn't close socket: $!\n";
+}
+
+#########################
+# Nice debugging output.
+#########################
+{
+  my $fresh;
+  sub debug($) {
+    my $msg = shift;
+
+    print STDERR "> " and $fresh++ unless $fresh;
+    print STDERR $msg;
+    $fresh = 0 if substr($msg, -1) eq "\n";
+    1;
+  }
+}
+
+######################
+# Display usage info.
+######################
+sub usage { print 'ntvl-tunnel v'.getVersion()." -- Use of UDP to traverse NAT gateways\n"; print STDERR <<'USAGE'; exit }
+
+Usage:
+  user@left  $ tunnel [options] port1:natgw-of-right:port2
+  user@right $ tunnel [options] port2:natgw-of-left:port1
+  where
+    port1, port2:       Two unused UDP ports
+    left, right:        The hosts behind NAT gateways you want to connect
+    natgw-of-left,      The addresses of the NAT gateways of left and right
+    natgw-of-right:
+
+Available options:
+  --window=10           The number of initial garbage packets to send.
+  --timeout=10          The number of seconds to wait for an acknowledgement
+                        of the connection by the peer.
+  --cmd="pppd..."       The command to run with its STDIN and STDOUT bound to
+                        the socket.
+                        If no command is specified, everything you type is
+                        relayed to the other end of the socket, i.e.
+                        ntvl-tunnel degrades to netcat.
+  --quit-after-connect  Quit ntvl-tunnel after the tunnel was established
+                        successfully.
+  --version             Display version information.
+  --help                This help.
+
+Options may be abbreviated to uniqueness.
+Run "perldoc ntvl-tunnel" for more information.
+USAGE
+
+
+=head1 NAME
+
+ntvl-tunnel - Use of UDP to traverse NAT gateways
+
+=head1 SYNOPSIS
+
+To create a simple text-only tunnel, use the commands
+
+  user@left  $ tunnel 40000:natgw-of-right:40001
+  user@right $ tunnel 40001:natgw-of-left:40000
+
+where C<40000> is an unused UDP port on C<left> and C<40001> is an unused port on
+C<right>. See L</EXAMPLES> for more.
+
+=head1 VERSION
+
+This document describes ntvl-tunnel
+
+=head1 DESCRIPTION
+
+ntvl-tunnel establishes connections between nodes which are behind NAT
+gateways, i.e. hosts which do I<not> have public IP addresses. Additionally,
+you can setup a small VPN by using pppd on top of ntvl-tunnel (see
+L</EXAMPLES>).  ntvl-tunnel does I<not> need an external server on the
+Internet, and it isn't necessary to reconfigure the involved NAT gateways,
+either. I<ntvl-tunnel works out-of-the-box.>
+
+See L</TECHNIQUE> for how this is achieved.
+
+Limitation: ntvl-tunnel does not work with gateways which change the port
+numbers. This is a fundamental problem of ntvl-tunnel's design, as the changed
+port numbers are (in general) not predictable.
+
+=head1 OPTIONS
+
+=over
+
+=item C<I<local_port>:I<peer>:I<remote_port>> (required)
+
+Sets the local port to use and the remote address to connect to.
+
+Note that you have to give the IP address or hostname of the I<NAT gateway> of
+the host you want to connect to, as the target host doesn't have a public IP
+address.
+
+=item C<--cmd="I<pppd...>">
+
+Runs the specified command after establishing the connection.
+
+The command will be run with its STDIN and STDOUT bound to the socket, i.e.
+everything the command writes to STDOUT will be forwarded to the peer.
+
+If no command is specified, ntvl-tunnel will relay input from STDIN to the peer
+and vice versa, i.e. ntvl-tunnel degrades to netcat.
+
+=item C<--window=I<10>>
+
+Sets the number of initial garbage packets to send. The default, 10, should
+work with most firewalls.
+
+=item C<--timeout=I<10>>
+
+Sets the maximum number of seconds to wait for an acknowledgement by the peer.
+
+=item C<--quit-after-connect>
+
+Quits ntvl-tunnel after the tunnel has been established successfully.
+
+ntvl-tunnel returns a non-C<0> statuscode to indicate that it wasn't able to
+establish the tunnel.
+
+C<--quit-after-connect> is useful if you want another program to use the
+tunnel. For example, you could configure OpenVPN to use the the same ports as
+ntvl-tunnel -- thus OpenVPN would be able to cross NAT gateways.
+
+=item C<--version>, C<--help>
+
+=back
+
+=head1 TECHNIQUE
+
+ntvl-tunnel establishes connections between hosts behind NAT gateways without need
+for reconfiguration of the involved NAT gateways.
+
+=over
+
+=item 1.
+
+Firstly, ntvl-tunnel on host C<left> sends garbage UDP packets to the NAT gateway
+of C<right>. These packets are, of course, discarded by the firewall.
+
+=item 2.
+
+Then C<right>'s ntvl-tunnel sends garbage UDP packets to the NAT gateway of
+C<left>. These packets are I<not> discarded, as C<left>'s NAT gateway thinks
+these packets are replies to the packets sent in step 1!
+
+=item 3.
+
+C<left>'s ntvl-tunnel continues to send garbage packets to C<right>'s NAT gateway.
+These packets are now not dropped either, as the NAT gateway thinks the packets
+are replies to the packets sent in step 2.
+
+=item 4.
+
+Finally, both hosts send an acknowledgement packet to signal readiness. When
+these packets are received, the connection is established and ntvl-tunnel can
+either relay STDIN/STDOUT to the socket or execute a program.
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Setup of a small VPN with PPP
+
+It's easy to setup a VPN (Virtual Private Network) by using the Point-to-Point
+Protocol Daemon, C<pppd>:
+
+  root@left # tunnel \
+      --cmd="pppd updetach noauth passive notty \
+             ipparam vpn 10.0.0.1:10.0.0.2"
+      40000:natgw-of-right:40001
+  root@right # tunnel \
+      --cmd="pppd nodetach notty noauth"
+      40001:natgw-of-left:40000
+
+C<pppd> creates a new interface, typically C<ppp0>.  Using this interface, you
+can ping C<10.0.0.1> or C<10.0.0.2>. As you can see, C<pppd> upgrades the
+data-only ntvl-tunnel provides to a full IP tunnel. Thus you can
+establish reliable TCP connections over the tunnel, even though the tunnel uses
+UDP!  Furthermore, you could even add IPv6 addresses to C<ppp0> by running C<ip
+-6 addr add...>!
+
+Note though that although this VPN I<is> arguably a private network, it is I<not>
+secured in any way. You may want to use SSH to encrypt the connection.
+
+=head2 Port Forwarding with netcat
+
+You can use C<netcat> to forward one of your local UDP or TCP ports to an
+arbitrary UDP or TCP port of the remote host, similar to C<ssh -L> or C<ssh
+-R>:
+
+  user@left  $ tunnel 10001:natgw-of-right:10002 \
+        --cmd="nc -vlp 20000"
+  user@right $ tunnel 10002:natgw-of-left:10001 \
+        --cmd="nc -vlp 22"
+
+As soon as the tunnel is established (using UDP ports C<10001> and C<10002>),
+C<left>'s TCP port C<20000> is forwarded to C<right>'s SSH Daemon (TCP port
+C<22>):
+
+  user@some-other-host $ ssh -p 20000 user@left
+  # Will connect to right's SSH daemon!
+
+But do note that you lose the reliability of TCP in this example, as the actual
+data is transported via UDP; so this is only a toy example. If you want
+reliable streams, use PPP on top of ntvl-tunnel, as described above.
+
+=head2 Setup of a VPN with OpenVPN
+
+You can use L<OpenVPN|http://openvpn.net/> over ntvl-tunnel if you want to
+have a I<secure> VPN.
+
+Using OpenVPN over ntvl-tunnel requires only one change to OpenVPN's
+configuration file, presuming that you don't want to use OpenVPN's multi-client
+mode: You have to adjust the C<code> and C<lport> options
+accordingly, for example:
+
+  # Options to add to left's and right's OpenVPN config:
+  port  60001
+  lport 60001
+
+  # Command to execute on left resp. right:
+  root@left  # until \
+                 tunnel --quit-after-connect 60001:right:60001 \
+               do \
+                 sleep 5 \
+               done; \
+               openvpn [...]
+  root@right # until \
+                 tunnel --quit-after-connect 60001:left:60001 \
+               do \
+                 sleep 5 \
+               done; \
+               openvpn [...]<!--
+
+The C<until> loop ensures that OpenVPN will not be started before
+ntvl-tunnel was able to establish the connection. Michael Kugele
+(C<michael (at) kugele.net>) also reported a way to still be able to
+use OpenVPN's multi-client mode with ntvl-tunnel: As all instances of
+ntvl-tunnel have to use unique ports (because a connection is identified by
+the source/destination port combination), you've to use redirection rules to
+redirect the ports used by ntvl-tunnel to the port the OpenVPN daemon listens
+on:
+
+  iptables -t nat -A PREROUTING -p udp \
+    --dport $LPORT -j DNAT --to $HOST:$PORT
+  iptables -t nat -A PREROUTING -p udp \
+    --dport $PORT -j REDIRECT --to-port $LPORT
+
+C<$LPORT> specifies the source port ntvl-tunnel uses on the server
+side, and C<$HOST:$PORT> is the address of the OpenVPN server.)
+
+=head1 LIMITATIONS
+
+Only IPv4 is supported, ntvl-tunnel won't work with IPv6 addresses. Drop me a
+note if you do need IPv6 support.
+
+ntvl-tunnel does not work with gateways which change the port numbers. This
+is a fundamental problem of ntvl-tunnel's design, as the changed port numbers
+are (in general) not predictable.
+
+=head1 SEE ALSO
+
+=over
+
+=item L<RFC 1631 at
+http://www.ietf.org/rfc/rfc1631.txt|http://www.ietf.org/rfc/rfc1631.txt>
+
+The IP Network Address Translator (NAT). K. Egevang, P. Francis.  May 1994.
+(Obsoleted by RFC3022) (Status: INFORMATIONAL)
+
+=item L<RFC 3022 at
+http://www.ietf.org/rfc/rfc3022.txt|http://www.ietf.org/rfc/rfc3022.txt>
+
+Traditional IP Network Address Translator (Traditional NAT). P.  Srisuresh,
+K. Egevang. January 2001.  (Obsoletes RFC1631) (Status: INFORMATIONAL)
+
+=item L<RFC 1661 at
+http://www.ietf.org/rfc/rfc1661.txt|http://www.ietf.org/rfc/rfc1661.txt>
+
+The Point-to-Point Protocol (PPP). W. Simpson, Ed.. July 1994.  (Obsoletes
+RFC1548) (Updated by RFC2153) (Also STD0051) (Status: STANDARD)
+
+=item L<http://ppp.samba.org/>
+
+Website of Paul's PPP Package (open source implementation of the
+Point-to-Point Protocol (PPP) on Linux and Solaris)
+
+=item L<German talk about ntvl-tunnel at
+http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf|http://linide.sourceforge.net/nat-traverse/nat-traverse-talk.pdf>
+
+Dieser Vortrag zeigt, wie man einen Tunnel zwischen zwei Computern, die
+beide hinter NAT-Gateways sitzen, hinbekommt. Dazu wird ein neues Programm
+vorgestellt, welches sowohl einfache Tastendrücke an die Gegenseite
+weiterleiten, als auch beliebige Programme mit Verbindungen zur Gegenseite
+starten kann. Damit ist ein einfaches VPN schnell aufgebaut.
+
+=back
+
+=head1 AUTHOR
+
+Copyright (C) 2005, 2012 Ingo Blechschmidt, E<lt>iblech@web.deE<gt>.
+
+You may want to visit nat-traverse Freecode project page,
+L<http://freecode.com/projects/nat-traverse/>.
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+Street, Fifth Floor, Boston, MA  02110-1301, USA.
