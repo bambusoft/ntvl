@@ -34,16 +34,18 @@
 #include <sys/wait.h>
 #include <sys/errno.h>
 
+#define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
+
 typedef enum { false, true } bool;
-enum { STR16 = 16, STR64 = 64, STR255 = 255 };
+enum {	STR16 = 16, STR64 = 64, STR255 = 255, NOVALUE = -999,
+		VERBOSE=1, NOVERBOSE=0, LOG=1, NOLOG=0 };
 
 const char* program_name;
 const char* program_version;
-char* config_filename = NULL;
-char* log_file=NULL;
-int verbose=0;
+const char* config_filename=NULL;
+int verbose=NOVERBOSE;
+int log_flag=LOG;
 int errflag=0;
-
 
 /* node structure definition */
 typedef struct {
@@ -105,7 +107,6 @@ char NTVL_COMMAND[STR255]="";
 static void print_version (FILE* stream) {
   fprintf (stream, "%s v%s\n\n", program_name, program_version);
 }
-
 /* ************************************************************************ */
 static void print_usage (FILE* stream, int exit_code) {
   print_version(stream);
@@ -120,19 +121,56 @@ static void print_usage (FILE* stream, int exit_code) {
 		   "\n");
   exit (exit_code);
 }
-
+/* ************************************************************************ */
+static char* getFileName(char *path, char *filename, char *dest) {
+	if ( ( sizeof(path)+sizeof(filename) ) <= STR255 ) {
+		memset(dest, 0, sizeof(dest));
+		strcpy(dest, path);
+		strcat(dest, "/");
+		strcat(dest, filename);
+		return dest;
+	}
+	return NULL;
+}
+/* ************************************************************************ */
+static void log_message(char *formatStr, char *valueStr) {
+	if (log_flag) {
+		char* log_file=NULL;
+		char str[STR255];
+		log_file=getFileName(NTVL_LOGPATH,NTVL_LOGFILE,str);
+		FILE *fhl=fopen(log_file, "a+");
+		if ( fhl != NULL ) {
+			if (strcmp(formatStr,"")==0) fprintf (fhl, "%s\n", valueStr);
+			else fprintf(fhl, formatStr, valueStr);
+			fclose(fhl);
+		} else {
+			perror("Error opening the log file");
+			exit(1);
+		}
+	}
+	if (verbose) {
+		if (strcmp(formatStr,"")==0) fprintf(stdout,"ntvld: %s\n", valueStr);
+		else fprintf(stdout,formatStr, valueStr);
+	}
+}
 /* ************************************************************************ */
 static void throw_error(char *where, char *err, char *what) {
 	char message[STR255];
+	int logStatus=log_flag;
+	
 	strcpy(message, where);
 	strcat(message, "=> ");
 	strcat(message, err);
 	strcat(message, "=> ");
 	strcat(message, what);
-	fprintf(stderr,"%s\n", message);
+	/* fprintf(stderr,"%s\n", message); */
+	perror(message);
+	/* force error log */
+	log_flag=LOG;
+	log_message("",message);
+	log_flag=logStatus;
 	errflag=1;
 }
-
 /* ************************************************************************ */
 static bool valid_ip(char *ipStr) {
 	/* check if valid reserved words */
@@ -148,18 +186,6 @@ static bool valid_ip(char *ipStr) {
 	}
 	return false;
 }
-
-/* ************************************************************************ */
-static char* getFileName(char *path, char *filename, char *dest) {
-	if ( ( sizeof(path)+sizeof(filename) ) <= STR255 ) {
-		memset(dest, 0, sizeof(dest));
-		strcpy(dest, path);
-		strcat(dest, "/");
-		strcat(dest, filename);
-		return dest;
-	}
-	return NULL;
-}
 /* ************************************************************************ */
 static bool file_exists(char *path, char *filename) {
 	char str[STR255];
@@ -171,19 +197,20 @@ static bool file_exists(char *path, char *filename) {
     }
     return false;
 }
-
 /* ************************************************************************ */
 /* readConfig */
 /* ************************************************************************ */
-static bool read_config() {
-
-#define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
-
+static bool read_config(int verbose_mode, int log_mode) {
 	long n;
 	char section[STR64];
 	char str[STR255];
 	int i,j;
+	int verboseStatus=verbose;
+	int logStatus=log_flag;
 	
+	if (verbose_mode==NOVERBOSE) verbose=NOVERBOSE;
+	if (log_mode==NOLOG) log_flag=NOLOG;
+
 	/* check if config file exists */
 	if (config_filename==NULL) config_filename="/etc/ntvl/ntvl.conf";
 
@@ -197,29 +224,22 @@ static bool read_config() {
 	/* prepare log file */
 	n = ini_gets("general", "logpath", NTVL_LOGPATH, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_LOGPATH, str);
 	n = ini_gets("general", "logfile", NTVL_LOGFILE, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_LOGFILE, str);
-
-	log_file=getFileName(NTVL_LOGPATH,NTVL_LOGFILE,str);
 	
-	FILE *fhl=fopen(log_file, "a+");
-	if ( fhl != NULL ) fprintf(fhl,"\n[ntvld config start]\n"); 
-	else {
-		perror("Error opening the log file");
-		errflag=1;
-	}
+	log_message("","\nStarting ntvld\nReading configuration file...");
 	
 	/* get general config values */
-	if (verbose && fhl!=NULL) fprintf(fhl,"***** general & supernode ******\n");
+	log_message("","***** general & supernode ******");
 
-	n = ini_gets("general", "runpath", NTVL_RUNPATH, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_RUNPATH,str);			if (verbose && fhl!=NULL) fprintf(fhl,"Runpath: %s\n", NTVL_RUNPATH);
-	n = ini_gets("general", "execpath", NTVL_EXECPATH, str, sizearray(str), config_filename);	if (n>0) strcpy(NTVL_EXECPATH,str);			if (verbose && fhl!=NULL) fprintf(fhl,"Execpath: %s\n", NTVL_EXECPATH);
-	n = ini_gets("general", "tunctlpath", NTVL_TUNCTLPATH, str, sizearray(str), config_filename);if (n>0) strcpy(NTVL_EXECPATH,str);		if (verbose && fhl!=NULL) fprintf(fhl,"Tunctl path: %s\n", NTVL_TUNCTLPATH);
-	n = ini_gets("general", "allowfile", NTVL_ALLOW, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_ALLOW, str);			if (verbose && fhl!=NULL) fprintf(fhl,"Allow file: %s\n", NTVL_ALLOW);
-	n = ini_gets("general", "denyfile", NTVL_DENY, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_DENY, str);			if (verbose && fhl!=NULL) fprintf(fhl,"Deny file: %s\n", NTVL_DENY);
-	n = ini_getl("general", "enable_supernode", NTVL_ENABLE_SUPERNODE, config_filename);		if (n>0) NTVL_ENABLE_SUPERNODE=1;			if (verbose && fhl!=NULL) fprintf(fhl,"Enable supernode: %d\n", NTVL_ENABLE_SUPERNODE);
-	n = ini_getl("general", "enable_tunnels", NTVL_ENABLE_TUNNELS, config_filename);			if (n>0) NTVL_ENABLE_TUNNELS=1;				if (verbose && fhl!=NULL) fprintf(fhl,"Enable tunnels: %d\n", NTVL_ENABLE_TUNNELS);
-	n = ini_getl("general", "enable_ssh_tunnels", NTVL_ENABLE_SSH_TUNNELS, config_filename);	if (n>0) NTVL_ENABLE_SSH_TUNNELS=1;			if (verbose && fhl!=NULL) fprintf(fhl,"Enable ssh tunnels: %d\n", NTVL_ENABLE_SSH_TUNNELS);
-	n = ini_getl("supernode", "mport", NTVL_SUPERNODE_MANAGEMENT_PORT, config_filename);		if (n>0) NTVL_SUPERNODE_MANAGEMENT_PORT=n;	if (verbose && fhl!=NULL) fprintf(fhl,"Supernode management port: %d\n", NTVL_SUPERNODE_MANAGEMENT_PORT);
-	n = ini_getl("supernode", "port", NTVL_SUPERNODE_PORT, config_filename);					if (n>0) NTVL_SUPERNODE_PORT=n;				if (verbose && fhl!=NULL) fprintf(fhl,"Supernode port: %d\n", NTVL_SUPERNODE_PORT);
+	n = ini_gets("general", "runpath", NTVL_RUNPATH, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_RUNPATH,str);			log_message("Runpath: %s\n", NTVL_RUNPATH);
+	n = ini_gets("general", "execpath", NTVL_EXECPATH, str, sizearray(str), config_filename);	if (n>0) strcpy(NTVL_EXECPATH,str);			log_message("Execpath: %s\n", NTVL_EXECPATH);
+	n = ini_gets("general", "tunctlpath", NTVL_TUNCTLPATH, str, sizearray(str), config_filename);if (n>0) strcpy(NTVL_EXECPATH,str);		log_message("Tunctl path: %s\n", NTVL_TUNCTLPATH);
+	n = ini_gets("general", "allowfile", NTVL_ALLOW, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_ALLOW, str);			log_message("Allow file: %s\n", NTVL_ALLOW);
+	n = ini_gets("general", "denyfile", NTVL_DENY, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_DENY, str);			log_message("Deny file: %s\n", NTVL_DENY);
+	n = ini_getl("general", "enable_supernode", NTVL_ENABLE_SUPERNODE, config_filename);		if (n>0) NTVL_ENABLE_SUPERNODE=1;			snprintf(str,STR255,"Enable supernode: %d",NTVL_ENABLE_SUPERNODE); 					log_message("",str);
+	n = ini_getl("general", "enable_tunnels", NTVL_ENABLE_TUNNELS, config_filename);			if (n>0) NTVL_ENABLE_TUNNELS=1;				snprintf(str,STR255,"Enable tunnels: %d",NTVL_ENABLE_TUNNELS); 						log_message("",str);
+	n = ini_getl("general", "enable_ssh_tunnels", NTVL_ENABLE_SSH_TUNNELS, config_filename);	if (n>0) NTVL_ENABLE_SSH_TUNNELS=1;			snprintf(str,STR255,"Enable ssh tunnels: %d",NTVL_ENABLE_SSH_TUNNELS); 				log_message("",str);
+	n = ini_getl("supernode", "mport", NTVL_SUPERNODE_MANAGEMENT_PORT, config_filename);		if (n>0) NTVL_SUPERNODE_MANAGEMENT_PORT=n;	snprintf(str,STR255,"Supernode management port: %d",NTVL_SUPERNODE_MANAGEMENT_PORT);log_message("",str);
+	n = ini_getl("supernode", "port", NTVL_SUPERNODE_PORT, config_filename);					if (n>0) NTVL_SUPERNODE_PORT=n;				snprintf(str,STR255,"Supernode port: %d",NTVL_SUPERNODE_PORT); 						log_message("",str);
 
 	/* check for executable files */
 	if (file_exists(NTVL_EXECPATH,"supernode")==false) throw_error("general","supernode executable not found at",NTVL_EXECPATH);
@@ -304,44 +324,48 @@ static bool read_config() {
 	}
 
 					
-	/* log node configurations if verbose enabled and log file is OK */
-	if (verbose && fhl!=NULL) {
-		for (i=0; i<MAX_NODES; i++) {
-			if (nodes[i].CONFIGURED==true) {
-				fprintf(fhl,"***** node:%d ******\n",(i+1));
-				fprintf(fhl,"Supernode: %s\n",nodes[i].SUPERNODE);
-				fprintf(fhl,"Network name: %s\n",nodes[i].NETNAME);
-				fprintf(fhl,"Secret key: %s\n",nodes[i].SECRET);
-				fprintf(fhl,"Device: %s\n",nodes[i].DEVICE);
-				fprintf(fhl,"Network: %s\n",nodes[i].NETWORK);
-				fprintf(fhl,"Netmask: %s\n",nodes[i].NETMASK);
-				fprintf(fhl,"Address: %s\n",nodes[i].ADDRESS);
-				fprintf(fhl,"Broadcast: %s\n",nodes[i].BROADCAST);
-				fprintf(fhl,"Gateway: %s\n",nodes[i].GATEWAY);
-			}
-		}
-		for (i=0; i<MAX_TUNNELS; i++) {
-			if (tunnels[i].CONFIGURED==true) {
-				fprintf(fhl,"***** tunnel:%d ******\n",(i+1));
-				fprintf(fhl,"Local port: %d\n",tunnels[i].LPORT);
-				fprintf(fhl,"Remote ip: %s\n",tunnels[i].REMOTE);
-				fprintf(fhl,"Remote port: %d\n",tunnels[i].RPORT);
-				fprintf(fhl,"Command: %s\n",tunnels[i].COMMAND);
-			}
+	/* log node configurations */
+	for (i=0; i<MAX_NODES; i++) {
+		if (nodes[i].CONFIGURED==true) {
+			snprintf(str,STR255,"***** node:%d ******", (i+1));
+			log_message("",str);
+			log_message("Supernode: %s\n",nodes[i].SUPERNODE);
+			log_message("Network name: %s\n",nodes[i].NETNAME);
+			log_message("Secret key: %s\n",nodes[i].SECRET);
+			log_message("Device: %s\n",nodes[i].DEVICE);
+			log_message("Network: %s\n",nodes[i].NETWORK);
+			log_message("Netmask: %s\n",nodes[i].NETMASK);
+			log_message("Address: %s\n",nodes[i].ADDRESS);
+			log_message("Broadcast: %s\n",nodes[i].BROADCAST);
+			log_message("Gateway: %s\n",nodes[i].GATEWAY);
 		}
 	}
-
-	if (fhl !=NULL) fclose(fhl);
-	
+	for (i=0; i<MAX_TUNNELS; i++) {
+		if (tunnels[i].CONFIGURED==true) {
+			snprintf(str,STR255,"***** tunnel:%d ******", (i+1)); 	log_message("",str);
+			snprintf(str,STR255,"Local port: %d",tunnels[i].LPORT); log_message("",str);
+			log_message("Remote ip: %s\n",tunnels[i].REMOTE);
+			snprintf(str,STR255,"Remote port: %d", tunnels[i].RPORT); log_message("",str);
+			log_message("Command: %s\n",tunnels[i].COMMAND);
+		}
+	}
+	log_message("","Finish reading config file\n");
 	if (errflag>0) exit (1);
 	
+	verbose=verboseStatus;
+	log_flag=logStatus;
 	return true;
 }
 /* ************************************************************************ */
 static void write_pid (pid_t ppid, char* exename, char* filename) {
 	char str[STR255];
+	char aux[STR255];
 	char* run_file=NULL;
 
+	strcpy(aux,"Storing ");
+	strcat(aux, filename);
+	log_message("",aux);
+	
 	run_file=getFileName(NTVL_RUNPATH, filename, str);
 
 	FILE *fhr=fopen(run_file, "w+");
@@ -368,12 +392,25 @@ static void write_pid (pid_t ppid, char* exename, char* filename) {
 				read(fd[0], str, sizeof(str));
 			}
 		}
+		log_message("Assigned pid => %s",str);
 		fprintf(fhr,"%s",str);
 		fclose (fhr);
 	} else {
-		perror(run_file);
+		throw_error("write_pid","cant open file for write",run_file);
 		exit(1);
 	}	
+}
+/* ************************************************************************ */
+static void log_executed(char *command, int status) {
+	char aux[STR255];
+	char numStr[6];
+
+	strcpy(aux,"executed command: ");
+	strcat(aux, command);
+	strcat(aux, " exit status=");
+	snprintf(numStr,6,"[%d]",status);
+	strcat(aux,numStr);
+	log_message("", aux); 
 }
 /* ************************************************************************ */
 static void start_daemons() {
@@ -381,94 +418,98 @@ static void start_daemons() {
 		# TODO: Check and use tcp_wrappers allow & deny
 		# TODO: If supernode enabled call supernode
 */
-	if (read_config()==true) {
+	if (read_config(VERBOSE,LOG)==true) {
 		char str[STR255];
 		
-		log_file=getFileName(NTVL_LOGPATH, NTVL_LOGFILE, str);
-		
-		FILE *fhl=fopen(log_file, "a+");
-		if ( fhl != NULL ) fprintf(fhl,"\nStarting daemons\n"); 
-		else perror("Error opening the log file");
-		
+		log_message("","Starting daemons...");
 		pid_t pid;
 		
 		/* ntvld.pid */	
-		pid=getpid();
-		if ( fhl != NULL ) fprintf(fhl,"Storing ntvld pid\n"); 
-		write_pid(pid, "ntvld", "ntvld.pid");
+		/* pid=getpid(); */
+		/* write_pid(pid, "ntvld", "ntvld.pid"); */
 
 		/* *************************************************** */
-		/* SUPERNODE */
+		/* EXECUTE SUPERNODE DAEMON*/
 		if (NTVL_ENABLE_SUPERNODE) {
 			char command[STR255];
+			char *argv[4];
+			strcpy(command,NTVL_EXECPATH);
+			strcat(command,"/supernode");
 			pid=fork();
 			if (pid==0) { /* child process */
 				char portStr[6];
 				snprintf(portStr,6,"%d",NTVL_SUPERNODE_PORT);
-				char *argv[]={"supernode","-l", portStr, NULL}; /* TODO: pass verbose mode */
-				strcpy(command,NTVL_EXECPATH);
-				strcat(command,"/supernode");
+				argv[0]="supernode"; argv[1]="-l"; argv[2]=portStr; argv[3]=NULL; /* TODO: pass verbose mode to supernode */
 				execv(command,argv);
 				exit(127);
 			} else { /* pid!=0; parent process */
+				int status;
+				wait(&status);
 				write_pid((pid_t)0,"supernode","supernode.pid");
-				if ( fhl != NULL ) fprintf(fhl,"executed: %s daemon\n", command); 
+				log_executed(command, status);
 			}
 		}
 		
-		/* NODES */
+		/* EXECUTE NODES */
 		int i;
+		int tunctlstatus=0;
+		char nodespid[STR16];
+		strcpy(nodespid,"nodes.pid");
 		for (i=0; i<MAX_NODES; i++) {
 			if (nodes[i].CONFIGURED==true) {
 				char command[STR255];
-				char nodespid[STR16];
-				strcpy(nodespid,"nodes.pid");
+				char *argv[12];
+				strcpy(command,NTVL_TUNCTLPATH);
+				strcat(command,"/tunctl");
 				/* *************************************************** */
 				/* tunctl */
 				pid=fork();
 				if (pid==0) { /* child process */
-					char *argv[]={"tunctl","-t",nodes[i].DEVICE, NULL};
-					strcpy(command,NTVL_TUNCTLPATH);
-					strcat(command,"/tunctl");
+					argv[0]="tunctl"; argv[1]="-t"; argv[2]=nodes[i].DEVICE; argv[3]=NULL;
 					execv(command,argv);
 					exit(127);
 				} else { /* pid!=0; parent process */
 					int status;
 					wait(&status);
-					if ( fhl != NULL ) fprintf(fhl,"executed: %s with result=%d\n", command, status); 
+					tunctlstatus=status;
+					log_executed(command, status); 
 				}
 				/* *************************************************** */
 				/* ifconfig <device> up */
+				strcpy(command,"/sbin");
+				strcat(command,"/ifconfig");
 				pid=fork();
 				if (pid==0) { /* child process */
-					char *argv[]={"ifconfig",nodes[i].DEVICE, nodes[i].ADDRESS, NULL};
-					strcpy(command,"/sbin");
-					strcat(command,"/ifconfig");
+					argv[0]="ifconfig"; argv[1]=nodes[i].DEVICE; argv[2]=nodes[i].ADDRESS; argv[3]=NULL; 
 					execv(command,argv);
 					exit(127);
 				} else { /* pid!=0; parent process */
 					int status;
-					wait(&status);					
-					if ( fhl != NULL ) fprintf(fhl,"executed: %s with result=%d\n", command, status); 
+					wait(&status);
+					log_executed(command, status); 
 				}
 				/* *************************************************** */
 				/* node[i] run and pid */
-				pid=fork();
-				if (pid==0) { /* child process */
-					char portStr[6];
-					snprintf(portStr,6,"%d",NTVL_SUPERNODE_PORT);
-					strcpy(str,nodes[i].SUPERNODE);
-					strcat(str,":");
-					strcat(str, portStr);
-					char *argv[]={"node","-d",nodes[i].DEVICE, "-c",nodes[i].NETNAME, "-k",nodes[i].SECRET, "-a",nodes[i].ADDRESS, "-l", str, NULL};
+				if (tunctlstatus==0) {
 					strcpy(command,NTVL_EXECPATH);
 					strcat(command,"/node");
-					execv(command,argv);
-					exit(127);
-				} else { /* pid!=0; parent process */
-					write_pid((pid_t) 0, "node", nodespid);
-					if ( fhl != NULL ) fprintf(fhl,"executed: %s daemon\n", command); 
-				}				
+					pid=fork();
+					if (pid==0) { /* child process */
+						char portStr[6];
+						snprintf(portStr,6,"%d",NTVL_SUPERNODE_PORT);
+						strcpy(str,nodes[i].SUPERNODE);
+						strcat(str,":");
+						strcat(str, portStr);
+						argv[0]="node"; argv[1]="-d"; argv[2]=nodes[i].DEVICE; argv[3]="-c"; argv[4]=nodes[i].NETNAME; argv[5]="-k"; argv[6]=nodes[i].SECRET; argv[7]="-a"; argv[8]=nodes[i].ADDRESS; argv[9]="-l"; argv[10]=str; argv[11]=NULL; /* TODO: pass verbose mode to node */
+						execv(command,argv);
+						exit(127);
+					} else { /* pid!=0; parent process */
+						int status;
+						wait(&status);
+						write_pid((pid_t) 0, "node", nodespid);
+						log_executed(command, status); 
+					}
+				} else log_message("","tunctl reports device not ready, maybe in use, node not started");
 			}
 		}
 
@@ -477,6 +518,9 @@ static void start_daemons() {
 			if (tunnels[i].CONFIGURED==true) {
 				if (sizeof (tunnels[i].COMMAND)>2) {
 					char command[STR255];
+					char *argv[5];
+					strcpy(command,NTVL_EXECPATH);
+					strcat(command,"/tunnel");
 					char portStr[6];
 					char argument[STR255];
 					char tunnelspid[STR16];
@@ -491,14 +535,12 @@ static void start_daemons() {
 					/* tunnel[i] run and pid */
 					pid=fork();
 					if (pid==0) { /* child process */
-						char *argv[]={"tunnel",argument,"--cmd",tunnels[i].COMMAND, NULL};
-						strcpy(command,NTVL_EXECPATH);
-						strcat(command,"/tunnel");
+						argv[0]="tunnel"; argv[1]=argument; argv[2]="--cmd"; argv[3]=tunnels[i].COMMAND; argv[4]=NULL;
 						/* execv(command,argv); */
 						exit(127);
 					} else { /* pid!=0; parent process */
 						write_pid((pid_t) 0, "tunnel", tunnelspid);
-						if ( fhl != NULL ) fprintf(fhl,"executed: %s daemon\n", command); 
+						log_executed(command, 0); 
 					}
 				} else throw_error("start_daemons","no command to process", "tunnel");
 			}
@@ -510,7 +552,6 @@ static void start_daemons() {
 		exit(1);
 	}
 }
-
 /* ************************************************************************ */
 static int kill_instances(char *procname) {
 	char* pid_file=NULL;
@@ -532,7 +573,8 @@ static int kill_instances(char *procname) {
 			strcpy(str,"OK");
 			if (killreturn==-1) strcpy(str,"Not running");
 			if (killreturn==EPERM ) strcpy(str,"Permission denied");
-			fprintf(stdout,"%s [%d]\n", str, killreturn);
+			fprintf(stdout,"[%s]\n", str);
+			log_executed(procname, killreturn);
 			numproc++;
 		}
 		fclose(fhp);
@@ -542,21 +584,17 @@ static int kill_instances(char *procname) {
 }
 /* ************************************************************************ */
 static void stop_daemons() {
-	if (read_config()==true) {
-		char str[STR255];
+	if (read_config(NOVERBOSE,NOLOG)==true) {
 		int cant=0;
 
-		log_file=getFileName(NTVL_LOGPATH,NTVL_LOGFILE,str);
-		FILE *fhl=fopen(log_file, "a+");
-		if ( fhl != NULL ) fprintf(fhl,"\nShowing status\n"); 
-		else perror("Error opening the log file");
+		log_message("","Stoping daemons..."); 
 
 		cant+=kill_instances("ntvld");
 		cant+=kill_instances("supernode");
 		cant+=kill_instances("nodes");
 		cant+=kill_instances("tunnels");
 		
-		if (cant==0) fprintf(stdout, "No daemons running\n");		
+		if (cant==0) log_message("","No daemons running");		
 	}
 }
 /* ************************************************************************ */
@@ -582,23 +620,17 @@ static int show_instances(char *procname) {
 	return numproc;
 }
 /* ************************************************************************ */
-
 static void show_status() {
-	if (read_config()==true) {
+	if (read_config(NOVERBOSE,NOLOG)==true) {
 		int cant=0;
-
-		char str[STR255];
-		log_file=getFileName(NTVL_LOGPATH,NTVL_LOGFILE,str);
-		FILE *fhl=fopen(log_file, "a+");
-		if ( fhl != NULL ) fprintf(fhl,"\nShowing status\n"); 
-		else perror("Error opening the log file");
+		fprintf(stdout,"Showing ntvld daemons status...\n");
 		
 		cant+=show_instances("ntvld");
 		cant+=show_instances("supernode");
 		cant+=show_instances("nodes");
 		cant+=show_instances("tunnels");
 		
-		if (cant==0) fprintf(stdout, "No daemons running\n");
+		if (cant==0) fprintf(stdout,"No daemons running\n");
 	}
 }
 /* ************************************************************************ */
@@ -651,7 +683,7 @@ int main (int argc, char* argv[]) {
 			break;
 
 		case 'v':   /* -v or --version */
-			verbose=1;
+			verbose=VERBOSE;
 			if (!selected_process) selected_process=opt;
 			break;
 
