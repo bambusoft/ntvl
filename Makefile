@@ -83,20 +83,15 @@ MANFILES=$(addprefix $(DOCMANDIR)/, node.8.gz supernode.1.gz ntvl-v1.0.0.gz tunn
 all: directories $(APPS) $(MANFILES)
 
 directories:
-	@echo "Creating build directory"
 	@$(MKDIR) $(DSTDIR)
 
 node: $(SRCDIR)/node.c $(NTVL_LIB) $(INCDIR)/ntvl_wire.h $(INCDIR)/ntvl.h Makefile
-	@echo "Compiling node"
 	$(CC) $(CFLAGS) $(SRCDIR)/node.c $(NTVL_LIB) $(LIBS_NODE) -o $(DSTDIR)/node
-	@echo "done..."
 
 test: $(SRCDIR)/test.c $(NTVL_LIB) $(INCDIR)/ntvl_wire.h $(INCDIR)/ntvl.h Makefile
-	@echo "Compiling test"
 	$(CC) $(CFLAGS) $(SRCDIR)/test.c $(NTVL_LIB) $(LIBS_NODE) -o $(DSTDIR)/test
 
 supernode: $(SRCDIR)/sn.c $(NTVL_LIB) $(INCDIR)/ntvl.h Makefile
-	@echo "Compiling supernode"
 	$(CC) $(CFLAGS) $(SRCDIR)/sn.c $(NTVL_LIB) $(LIBS_SN) -o $(DSTDIR)/supernode
 	
 tunnel: $(SRCDIR)/tunnel
@@ -104,19 +99,15 @@ tunnel: $(SRCDIR)/tunnel
 	@chmod a+x $(DSTDIR)/$@
 	
 ntvld: $(SRCDIR)/ntvld.c $(INCDIR)/minIni.h Makefile
-	@echo "Compiling ntvld"
 	$(CC) $(CFLAGS) $(SRCDIR)/minIni.c $(SRCDIR)/ntvld.c -o $(DSTDIR)/ntvld
 
 benchmark: $(SRCDIR)/benchmark.c $(NTVL_LIB) $(INCDIR)/ntvl_wire.h $(INCDIR)/ntvl.h Makefile
-	@echo "Compiling benchmark"
 	$(CC) $(CFLAGS) $(SRCDIR)/benchmark.c $(NTVL_LIB) $(LIBS_SN) -o $(DSTDIR)/benchmark
 	
 .c.o: $(INCDIR)/ntvl.h $(INCDIR)/ntvl_keyfile.h $(INCDIR)/ntvl_transforms.h $(INCDIR)/ntvl_wire.h $(INCDIR)/twofish.h Makefile
-	@echo "Compiling $@"
 	$(CC) $(CFLAGS) -DNTVL_VERSION='"$(NTVL_VERSION)"' -DNTVL_OSNAME='"$(NTVL_OSNAME)"' -c $< 
 
 %.gz : %
-	@echo "Compressing $@"
 	gzip -c $< > $@
 
 $(NTVL_LIB): $(NTVL_COBJS)
@@ -135,12 +126,14 @@ install: $(DSTDIR)/node $(DSTDIR)/supernode $(DSTDIR)/ntvld $(DOCMANDIR)/node.8.
 	$(INSTALL_DOC) $(DOCMANDIR)/supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) $(DOCMANDIR)/tunnel.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) $(DOCMANDIR)/ntvl-v1.0.0.gz $(MAN7DIR)/
-	$(INSTALL_DOC) config/ntvl-default.conf $(ETCDIR)/ntvl.conf
+	@if [ ! -e $(ETCDIR)/ntvl.conf ]; then $(INSTALL_DOC) config/ntvl-default.conf $(ETCDIR)/ntvl.conf; fi
 	@touch $(LOGDIR)/ntvl.log
+	@truncate -s 0 $(LOGDIR)/ntvl.log
 
 clean:
 	@echo "Cleaning ntvl building environment"
-	@rm -rf $(DSTDIR) ./*.o $(NTVL_LIB) $(APPS) $(MANFILES) test *.dSYM *~
+	@echo "Preserving $(ETCDIR)/ntvl.conf and $(LOGDIR)/ntvl.log"
+	@rm -rf $(DSTDIR)/* ./*.o $(NTVL_LIB) $(APPS) $(MANFILES) test *.dSYM *~
 
 uninstall:
 # SBINDIR and MAN?DIR preserved
@@ -153,7 +146,7 @@ uninstall:
 	@rm -f $(MAN1DIR)/supernode.1.gz
 	@rm -f $(MAN1DIR)/tunnel.1.gz
 	@rm -f $(MAN7DIR)/ntvl-v1.0.0.gz 
-	@rm -rf $(ETCDIR) $(RUNDIR)
+	@rm -rf $(ETCDIR) $(RUNDIR) $(LOGDIR)
 	@echo "Preserving $(SBINDIR), $(MAN1DIR), $(MAN7DIR), $(MAN8DIR)"
 	
 help:
