@@ -7,7 +7,7 @@ NTVL_OSNAME=$(shell uname -s)
 CC=gcc
 DEBUG?=-g3
 
-#OPTIONS=static
+#OPTIONS=-static
 OPTIONS=
 
 #OPTIMIZATION?=-O2
@@ -85,7 +85,7 @@ all: directories $(APPS) $(MANFILES)
 directories:
 	@$(MKDIR) $(DSTDIR)
 
-node: $(SRCDIR)/node.c $(NTVL_LIB) $(INCDIR)/ntvl_wire.h $(INCDIR)/ntvl.h Makefile
+node: tunctl $(SRCDIR)/node.c $(NTVL_LIB) $(INCDIR)/ntvl_wire.h $(INCDIR)/ntvl.h Makefile
 	$(CC) $(CFLAGS) $(SRCDIR)/node.c $(NTVL_LIB) $(LIBS_NODE) -o $(DSTDIR)/node
 
 test: $(SRCDIR)/test.c $(NTVL_LIB) $(INCDIR)/ntvl_wire.h $(INCDIR)/ntvl.h Makefile
@@ -104,6 +104,9 @@ ntvld: $(SRCDIR)/ntvld.c $(INCDIR)/minIni.h Makefile
 benchmark: $(SRCDIR)/benchmark.c $(NTVL_LIB) $(INCDIR)/ntvl_wire.h $(INCDIR)/ntvl.h Makefile
 	$(CC) $(CFLAGS) $(SRCDIR)/benchmark.c $(NTVL_LIB) $(LIBS_SN) -o $(DSTDIR)/benchmark
 	
+tunctl: Makefile
+	@test -x /usr/sbin/tunctl || (test -x /sbin/tunctl || echo "WARNING: tunctl command not found at standard locations")
+
 .c.o: $(INCDIR)/ntvl.h $(INCDIR)/ntvl_keyfile.h $(INCDIR)/ntvl_transforms.h $(INCDIR)/ntvl_wire.h $(INCDIR)/twofish.h Makefile
 	$(CC) $(CFLAGS) -DNTVL_VERSION='"$(NTVL_VERSION)"' -DNTVL_OSNAME='"$(NTVL_OSNAME)"' -c $< 
 
