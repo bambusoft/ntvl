@@ -1,8 +1,74 @@
+Last updated: 2012-06-25 15:45 GMT-6
 
-Last updated: 2012-06-09 13:00 GMT-6
+--------------------------------------------------
+ntvld
+--------------------------------------------------
 
+You can run node, supernode or tunnel alone (see instructions below). For an automated process you may ned to start with ntvld.
+
+0. become root
+
+1. Be sure to change the ntvl.conf file (usually /etc/ntvl/ntvl.conf) to appropiate values
+
+2. See what are the available options
+# ntvld -h
+
+3. See the actual status of nodes, supernode and tunnels daemons in the current machine
+# ntvld -t
+
+4. To stop any daemons running to a fresh start type
+# ntvld -k
+
+5. Start daemons
+# ntvld -s
+
+6. You can always verify status with -t option
+# ntvld -t
+
+--------------------------------------------------
+Config file example
+--------------------------------------------------
+
+[general]
+logpath=/var/log/ntvl			# Path to log directory
+logfile=ntvl.log				# General log file
+runpath=/var/run/ntvl			# Path to store pid files
+execpath=/usr/sbin				# Path to executable files: supernode, node, tunnel
+tunctlpath=/usr/sbin			# Path to tunctl executable file
+allowfile=/etc/ntvl/ntvl.allow	# tcp_wrapper hosts.allow syntax file
+denyfile=/etc/ntvl/ntvl.deny	# tcp_wrapper hosts.deny syntax file
+enable_supernode=1				# If this machine is going to serve as supernode
+enable_tunnels=0				# Make tunnels at starup?
+enable_ssh_tunnels=1			# If tunnels enabled & ssh is instaled 1=use ssh application level tunnel, uninstalled or 0=use layer 2 level unsecured tunnel
+
+[supernode]
+mport=1970				# Available local port for management
+port=1971				# Available local port for listening
+
+[node:1]
+supernode=anydomain.com	# Default supernode fqdn or IPv4
+netname=localnet		# Virtualnetwork name
+secret=unknown			# Secret word to acces the network
+device=tap0				# Defined device name
+network=172.19.0.0		# Subnet
+netmask=255.255.255.0	# Network mask
+address=dhcp			# dhcp | fixed IPv4 address
+broadcast=172.19.0.255	# Broadcast address
+gateway=172.19.0.1		# Virtual network gateway address
+
+[tunnel:1]
+local-port=2100			# Available local port
+remote=localhost		# Local hostname fqdn or IPv4
+remote-port=2101		# Listening remote port
+command=				# Local command to execute once tunnel is established
+
+------------
+If you get the message: invalid supernode IP address or DNS failure, try using the IP
+
+
+--------------------------------------------------
 Node
-----
+--------------------------------------------------
 
 You need to start a node on each host you want to connect with the *same*
 community.
@@ -22,14 +88,15 @@ and run as a daemon.
 
 Note that -u, -g and -f options are not available for Windows.
 
+--------------------------------------------------
 Supernode
---------
+--------------------------------------------------
 
 You need to start the supernode once
 
 1. ./supernode -l 1234 -v
 
-
+--------------------------------------------------
 Dropping Root Privileges and SUID-Root Executables (UNIX)
 --------------------------------------------------
 
@@ -51,8 +118,9 @@ Any user can now run node. You may not want this, but it may be convenient and
 safe if your host has only one login user.
 
 
-Running As a Daemon (UNIX)
--------------------
+--------------------------------------------------
+Running node/supernode as a Daemon (UNIX)
+--------------------------------------------------
 
 Unless given "-f" as a command line option, node will call daemon(3) after
 successful setup. This causes the process to fork a child which closes stdin,
@@ -64,9 +132,9 @@ If the node command returns 0 then the daemon started successfully. If it
 returns non-zero then node failed to start up for some reason. When node starts
 running as a daemon, all logging goes to syslog daemon.info facility.
 
-
+--------------------------------------------------
 IPv6 Support
-------------
+--------------------------------------------------
 
 ntvl supports the carriage of IPv6 packets within the ntvl tunnel. ntvl does not
 yet use IPv6 for transport between nodes and supernodes.
@@ -92,9 +160,9 @@ Once the IPv6 addresses are configured and node started, IPv6 neighbor discovery
 packets flow (get broadcast) and IPv6 entities self arrange. Test your IPv6
 setup with ping6 - the IPv6 ping command.
 
-
+--------------------------------------------------
 Performance Notes
------------------
+--------------------------------------------------
 
 The time taken to perform a ping test for various ciphers is given below:
 
@@ -109,4 +177,7 @@ AES  (-O3) 12532
 TF   (-O3) 14046
 NULL (-O3) 10659
 
-(C) 2007-2010 - Luca Deri, Richard Andrews
+
+
+(C) 2012 - ntvl - Mario Rodriguez
+(C) 2007-2010 - n2n - Luca Deri, Richard Andrews
