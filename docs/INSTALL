@@ -1,13 +1,14 @@
-REQUIREMENTS
+REQUIREMENTS FOR NODE
+=====================
+If NTVL_OPTION_AES is equal to yes in Makefile
 - openssl/aes.h
+- openssl/
 - libcrypt
-- pgrep
 - tunctl
 
 
-
 INSTALL
-
+=====================
 To build the programs:
 
 $ make
