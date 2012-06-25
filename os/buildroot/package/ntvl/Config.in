@@ -1,6 +1,6 @@
 config BR2_PACKAGE_NTVL
 	bool "ntvl"
 	help
-	  Layer two peer-to-peer VLAN/VPN. 
+	  Layer two peer-to-peer Virtual Private Network. 
 
 	  http://ntvl.bambusoft.mx/

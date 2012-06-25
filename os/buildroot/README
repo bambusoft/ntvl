@@ -8,5 +8,5 @@ Insert this into the package/Config.in Network applications section:
 	source "package/ntvl/Config.in"	
 	
 Note: 	The ntvl programs require libcrypt and aes.h accesible.
-		Is his are not present in the target distribution it may be require to be compiled whit static option
+		If these files are not present in the target distribution it may be require to be compiled whit static option
 		This may be against the small size requirements of that embedded target, be advised.
