@@ -95,12 +95,12 @@ char NTVL_SECRET_WORD[STR255] = "unknown";
 char NTVL_DEVICE[STR16] = "tap";
 char NTVL_NETWORK[STR16]="169.254.1.0";
 char NTVL_NETMASK[STR16]="255.255.255.0";
-char NTVL_ADDRESS[STR16]="169.254.1.1";
+char NTVL_ADDRESS[STR16]="169.254.1.3";
 char NTVL_BROADCAST[STR16]="169.254.1.255";
 char NTVL_GATEWAY[STR16]="169.254.1.1";
 int NTVL_TUNNEL_LPORT=2100;
 int NTVL_TUNNEL_RPORT=2101;
-char NTVL_REMOTE[STR255]="169.254.1.1";
+char NTVL_REMOTE[STR255]="169.254.2.1";
 char NTVL_COMMAND[STR255]="";
 
 /* ************************************************************************ */
@@ -133,11 +133,30 @@ static char* getFileName(char *path, char *filename, char *dest) {
 	return NULL;
 }
 /* ************************************************************************ */
+static bool file_exists(char *path, char *filename) {
+	char str[STR255];
+	getFileName(path, filename, str);
+	FILE *file = fopen(str, "r");
+    if (file !=NULL) {
+        fclose(file);
+        return true;
+    }
+    return false;
+}
+/* ************************************************************************ */
 static void log_message(char *formatStr, char *valueStr) {
 	if (log_flag) {
 		char* log_file=NULL;
 		char str[STR255];
 		log_file=getFileName(NTVL_LOGPATH,NTVL_LOGFILE,str);
+		/* Create log file if not exists */
+		if (file_exists(NTVL_LOGPATH,NTVL_LOGFILE)==false) {
+			FILE *fhc=fopen(log_file, "w");
+			if (fhc != NULL) {
+				fprintf(fhc, "Log file created automatically\n");
+				fclose(fhc);
+			} else perror ("Error creating log file");
+		}
 		FILE *fhl=fopen(log_file, "a+");
 		if ( fhl != NULL ) {
 			if (strcmp(formatStr,"")==0) fprintf (fhl, "%s\n", valueStr);
@@ -163,8 +182,7 @@ static void throw_error(char *where, char *err, char *what) {
 	strcat(message, err);
 	strcat(message, "=> ");
 	strcat(message, what);
-	/* fprintf(stderr,"%s\n", message); */
-	perror(message);
+	fprintf(stderr,"%s\n", message);
 	/* force error log */
 	log_flag=LOG;
 	log_message("",message);
@@ -183,19 +201,9 @@ static bool valid_ip(char *ipStr) {
 		struct hostent *he;	
 		he = gethostbyname (ipStr);
 		if (he) return true;
+		else if (gethostname(ipStr, sizeof ipStr) == 0) return true;
 	}
 	return false;
-}
-/* ************************************************************************ */
-static bool file_exists(char *path, char *filename) {
-	char str[STR255];
-	getFileName(path, filename, str);
-	FILE *file = fopen(str, "r");
-    if (file !=NULL) {
-        fclose(file);
-        return true;
-    }
-    return false;
 }
 /* ************************************************************************ */
 /* readConfig */
@@ -232,7 +240,7 @@ static bool read_config(int verbose_mode, int log_mode) {
 
 	n = ini_gets("general", "runpath", NTVL_RUNPATH, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_RUNPATH,str);			log_message("Runpath: %s\n", NTVL_RUNPATH);
 	n = ini_gets("general", "execpath", NTVL_EXECPATH, str, sizearray(str), config_filename);	if (n>0) strcpy(NTVL_EXECPATH,str);			log_message("Execpath: %s\n", NTVL_EXECPATH);
-	n = ini_gets("general", "tunctlpath", NTVL_TUNCTLPATH, str, sizearray(str), config_filename);if (n>0) strcpy(NTVL_EXECPATH,str);		log_message("Tunctl path: %s\n", NTVL_TUNCTLPATH);
+	n = ini_gets("general", "tunctlpath", NTVL_TUNCTLPATH, str, sizearray(str), config_filename);if (n>0) strcpy(NTVL_TUNCTLPATH,str);		log_message("Tunctl path: %s\n", NTVL_TUNCTLPATH);
 	n = ini_gets("general", "allowfile", NTVL_ALLOW, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_ALLOW, str);			log_message("Allow file: %s\n", NTVL_ALLOW);
 	n = ini_gets("general", "denyfile", NTVL_DENY, str, sizearray(str), config_filename);		if (n>0) strcpy(NTVL_DENY, str);			log_message("Deny file: %s\n", NTVL_DENY);
 	n = ini_getl("general", "enable_supernode", NTVL_ENABLE_SUPERNODE, config_filename);		if (n>0) NTVL_ENABLE_SUPERNODE=1;			snprintf(str,STR255,"Enable supernode: %d",NTVL_ENABLE_SUPERNODE); 					log_message("",str);
@@ -261,7 +269,7 @@ static bool read_config(int verbose_mode, int log_mode) {
 			digit[1]=0;
 			strcat (nodesection, digit);
 
-			n = ini_gets(nodesection,"supernode", NTVL_SUPERNODE_FQDN, str, sizearray(str), config_filename);	if (n>0) strcpy(NTVL_SUPERNODE_FQDN, str); 	if (valid_ip(NTVL_SUPERNODE_FQDN)==false) throw_error(section,"invalid supernode IP address or DNS failure",NTVL_NETWORK);
+			n = ini_gets(nodesection,"supernode", NTVL_SUPERNODE_FQDN, str, sizearray(str), config_filename);	if (n>0) strcpy(NTVL_SUPERNODE_FQDN, str); 	if (valid_ip(NTVL_SUPERNODE_FQDN)==false) throw_error(section,"invalid supernode IP address or DNS failure",NTVL_SUPERNODE_FQDN);
 			n = ini_gets(nodesection,"netname", NTVL_NETNAME, str, sizearray(str), config_filename); 			if (n>0) strcpy(NTVL_NETNAME, str);
 			n = ini_gets(nodesection,"secret", NTVL_SECRET_WORD, str, sizearray(str), config_filename);			if (n>0) strcpy(NTVL_SECRET_WORD, str);
 			strcpy(auxStr, NTVL_DEVICE);
@@ -357,6 +365,18 @@ static bool read_config(int verbose_mode, int log_mode) {
 	return true;
 }
 /* ************************************************************************ */
+static void log_executed(char *command, int status) {
+	char aux[STR255];
+	char numStr[6];
+
+	strcpy(aux,"executed command: ");
+	strcat(aux, command);
+	strcat(aux, " exit status=");
+	snprintf(numStr,6,"[%d]",status);
+	strcat(aux,numStr);
+	log_message("", aux); 
+}
+/* ************************************************************************ */
 static void write_pid (pid_t ppid, char* exename, char* filename) {
 	char str[STR255];
 	char aux[STR255];
@@ -374,15 +394,15 @@ static void write_pid (pid_t ppid, char* exename, char* filename) {
 		else {
 			int fd[2];
 			pid_t pid;
-			
+			/* try to get pids using pgrep */
 			pipe(fd);
 			pid=fork();
 			if (pid==0) { /* child */
 				close(fd[0]); /* child closes up input side */
 				dup2(fd[1],1);
 				dup2(fd[1],2);
-				char *argv[]={"pgrep","-x",exename, NULL};
-				execv("/usr/bin/pgrep", argv);
+				char *argv[]={"pgrepx","-x",exename, NULL};
+				execv("/usr/bin/pgrepx", argv);
 				exit(127);
 			} else { /* parent */
 				int status;
@@ -390,6 +410,28 @@ static void write_pid (pid_t ppid, char* exename, char* filename) {
 				wait(&status);
 				memset(str, 0, sizeof(str));
 				read(fd[0], str, sizeof(str));
+				if ( (str[0]==0) || (strcmp(str,"")==0) ) { /* pgrep does not exist or exits with out reading pids, lets try using pidof */
+					pipe(fd);
+					pid=fork();
+					if (pid==0) { /* child */
+						close(fd[0]); /* child closes up input side */
+						dup2(fd[1],1);
+						dup2(fd[1],2);
+						char *argv[]={"pidof",exename, NULL};
+						execv("/bin/pidof", argv);
+						exit(127);
+					} else { /* parent */
+						close(fd[1]); /* parent closes up output side */
+						wait(&status);
+						memset(str, 0, sizeof(str));
+						read(fd[0], str, sizeof(str));
+						int x = 0;
+						while (str[x]) {
+							if (str[x]==0x20) str[x]=0x0a;
+							x++;
+						}
+					}
+				}
 			}
 		}
 		log_message("Assigned pid => %s",str);
@@ -399,18 +441,6 @@ static void write_pid (pid_t ppid, char* exename, char* filename) {
 		throw_error("write_pid","cant open file for write",run_file);
 		exit(1);
 	}	
-}
-/* ************************************************************************ */
-static void log_executed(char *command, int status) {
-	char aux[STR255];
-	char numStr[6];
-
-	strcpy(aux,"executed command: ");
-	strcat(aux, command);
-	strcat(aux, " exit status=");
-	snprintf(numStr,6,"[%d]",status);
-	strcat(aux,numStr);
-	log_message("", aux); 
 }
 /* ************************************************************************ */
 static void start_daemons() {
@@ -472,7 +502,8 @@ static void start_daemons() {
 					int status;
 					wait(&status);
 					tunctlstatus=status;
-					log_executed(command, status); 
+					if (tunctlstatus>0) write_pid((pid_t) 0, "node", nodespid); /* device busy? update nodes.pid in case of zombie process */
+					log_executed(command, status);
 				}
 				/* *************************************************** */
 				/* ifconfig <device> up */
@@ -514,38 +545,39 @@ static void start_daemons() {
 		}
 
 		/* TUNNELS */
-		for (i=0; i<MAX_TUNNELS; i++) {
-			if (tunnels[i].CONFIGURED==true) {
-				if (sizeof (tunnels[i].COMMAND)>2) {
-					char command[STR255];
-					char *argv[5];
-					strcpy(command,NTVL_EXECPATH);
-					strcat(command,"/tunnel");
-					char portStr[6];
-					char argument[STR255];
-					char tunnelspid[STR16];
-					strcpy(tunnelspid,"tunnels.pid");
-					snprintf(portStr,6,"%d",tunnels[i].LPORT);
-					strcpy(argument,portStr);
-					strcat(argument,":");
-					strcat(argument,tunnels[i].REMOTE);
-					strcat(argument,":");
-					snprintf(portStr,6,"%d",tunnels[i].RPORT);
-					strcat(argument, portStr);
-					/* tunnel[i] run and pid */
-					pid=fork();
-					if (pid==0) { /* child process */
-						argv[0]="tunnel"; argv[1]=argument; argv[2]="--cmd"; argv[3]=tunnels[i].COMMAND; argv[4]=NULL;
-						/* execv(command,argv); */
-						exit(127);
-					} else { /* pid!=0; parent process */
-						write_pid((pid_t) 0, "tunnel", tunnelspid);
-						log_executed(command, 0); 
-					}
-				} else throw_error("start_daemons","no command to process", "tunnel");
+		if (NTVL_ENABLE_TUNNELS) {
+			for (i=0; i<MAX_TUNNELS; i++) {
+				if (tunnels[i].CONFIGURED==true) {
+					if (sizeof (tunnels[i].COMMAND)>2) {
+						char command[STR255];
+						char *argv[5];
+						strcpy(command,NTVL_EXECPATH);
+						strcat(command,"/tunnel");
+						char portStr[6];
+						char argument[STR255];
+						char tunnelspid[STR16];
+						strcpy(tunnelspid,"tunnels.pid");
+						snprintf(portStr,6,"%d",tunnels[i].LPORT);
+						strcpy(argument,portStr);
+						strcat(argument,":");
+						strcat(argument,tunnels[i].REMOTE);
+						strcat(argument,":");
+						snprintf(portStr,6,"%d",tunnels[i].RPORT);
+						strcat(argument, portStr);
+						/* tunnel[i] run and pid */
+						pid=fork();
+						if (pid==0) { /* child process */
+							argv[0]="tunnel"; argv[1]=argument; argv[2]="--cmd"; argv[3]=tunnels[i].COMMAND; argv[4]=NULL;
+							execv(command,argv);
+							exit(127);
+						} else { /* pid!=0; parent process */
+							write_pid((pid_t) 0, "tunnel", tunnelspid);
+							log_executed(command, 0); 
+						}
+					} else throw_error("start_daemons","no command to process", "tunnel");
+				}
 			}
 		}
-
 		
 	} else {
 		throw_error("start_daemons","can't read file", "config");
@@ -568,14 +600,23 @@ static int kill_instances(char *procname) {
 	if (fhp != NULL) {
 		while ( fgets ( str, sizeof str, fhp ) != NULL ) {
 			ipid=atoi(str);
-			fprintf(stdout,"Stopping %s [%d]...", procname, ipid);
-			killreturn=killpg((pid_t)ipid,SIGKILL);
-			strcpy(str,"OK");
-			if (killreturn==-1) strcpy(str,"Not running");
-			if (killreturn==EPERM ) strcpy(str,"Permission denied");
-			fprintf(stdout,"[%s]\n", str);
-			log_executed(procname, killreturn);
-			numproc++;
+			if (ipid==0) { /* 0? maybe .pid file is corrupted */
+				strcpy(str,procname);
+				strcat(str,".pid");
+				if (strcmp(procname,"nodes")==0) write_pid((pid_t)0,"node",str); /* process name=node procname=nodes (multiple instances)*/
+				else if (strcmp(procname,"tunnels")==0) write_pid((pid_t)0,"tunnel",str); /* process name=tunnel procname=tunnels (multiple instances) */
+					else write_pid((pid_t)0,procname,str);
+				fprintf(stdout,"Detected zombie process, please try ntvld -t & ntvld -k to check\n");
+			} else {
+				fprintf(stdout,"Stopping %s [%d]...", procname, ipid);
+				killreturn=killpg((pid_t)ipid,SIGKILL);
+				strcpy(str,"OK");
+				if (killreturn==-1) strcpy(str,"Not running");
+				if (killreturn==EPERM ) strcpy(str,"Permission denied");
+				fprintf(stdout,"[%s]\n", str);
+				log_executed(procname, killreturn);
+				numproc++;
+			}
 		}
 		fclose(fhp);
 	}
