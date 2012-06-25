@@ -13,9 +13,9 @@ define NTVL_BUILD_CMDS
 endef
 
 define NTVL_INSTALL_TARGET_CMDS
-	$(INSTALL) -D -m 0755 $(@D)/config/ntvl-node-default.conf $(TARGET_DIR)/etc/ntvl/ntvl.conf
+	$(INSTALL) -D -m 0644 $(@D)/config/ntvl-node-default.conf $(TARGET_DIR)/etc/ntvl/ntvl.conf
 	$(INSTALL) -D -m 0755 $(@D)/dist/ntvld $(TARGET_DIR)/sbin/ntvld
-	$(INSTALL) -D -m 0755 $(@D)/dist/node $(TARGET_DIR)/sbin/node
+	$(INSTALL) -D -m 0755 $(@D)/dist/node $(TARGET_DIR)/sbin/edge
 	$(INSTALL) -D -m 0755 $(@D)/dist/supernode $(TARGET_DIR)/sbin/supernode
 	$(INSTALL) -D -m 0755 $(@D)/dist/tunnel $(TARGET_DIR)/sbin/tunnel
 endef
