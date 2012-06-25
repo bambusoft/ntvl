@@ -45,8 +45,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jun 25 2012 Mario Rodriguez -
+- First release for ntvl-1.0
 * Sun Jan 10 2012 Mario Rodriguez -
-- First release fon ntvl-1
+- First release for ntvl-0.9
 * Fri Oct 30 2009 Richard Andrews -
 - First beta for n2n-2
 * Sat May  3 2008 Richard Andrews - 
