@@ -200,8 +200,10 @@ static bool valid_ip(char *ipStr) {
 	else { /* check if valid hostname */
 		struct hostent *he;	
 		he = gethostbyname (ipStr);
-		if (he) return true;
-		else if (gethostname(ipStr, sizeof ipStr) == 0) return true;
+		/* check if valid local hostname */
+		/* if (he) return true;
+		else if (gethostname(ipStr, sizeof ipStr) == 0) return true; */ 
+		/* in "buildroot" embedded Linux when compiled with uClibc does not lookup correctly when use gethostbyname function */
 	}
 	return false;
 }
