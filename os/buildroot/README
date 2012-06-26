@@ -8,6 +8,7 @@ Tested on: buildroot-2012.05
 	source "package/ntvl/Config.in"	
 
 3. Be sure to put correct values in ntvl.conf, specially path & files variables.
+   You can always use ntvld -c configfile to use diferent config file.
 	
 Note: 	IF NTVL_AES enabled in Makefile	the ntvl programs requires libcrypt and aes.h accesible.
 		If these files are not present in the target distribution it may be require to be compiled whit static option
