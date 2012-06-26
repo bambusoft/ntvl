@@ -2,11 +2,13 @@ Copyright (C) 2012 Mario Ricardo Rodriguez Somohano <collab@bambusoft.com>
 
 Tested on: buildroot-2012.05
 
-Copy package/ntvl to the buildroot packages directory
+1. Copy package/ntvl to the buildroot packages directory
 
-Insert this into the package/Config.in Network applications section:
+2. Insert this into the package/Config.in Network applications section:
 	source "package/ntvl/Config.in"	
+
+3. Be sure to put correct values in ntvl.conf, specially path & files variables.
 	
-Note: 	The ntvl programs require libcrypt and aes.h accesible.
+Note: 	IF NTVL_AES enabled in Makefile	the ntvl programs requires libcrypt and aes.h accesible.
 		If these files are not present in the target distribution it may be require to be compiled whit static option
 		This may be against the small size requirements of that embedded target, be advised.
