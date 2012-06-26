@@ -62,9 +62,19 @@ remote=localhost		# Local hostname fqdn or IPv4
 remote-port=2101		# Listening remote port
 command=				# Local command to execute once tunnel is established
 
-------------
-If you get the message: invalid supernode IP address or DNS failure, try using the IP
+--------------------------------------------------
+Troubleshooting ntvld
+--------------------------------------------------
+Common error messages:
+- invalid supernode IP address or DNS failure
+	try using the IP address not the fqdn
+- Error creating log file
+	The "logpath" configuration variable must point to an existing directory
 
+Common situations:
+- node not conected to network
+	1. Check "network", "address" and "netmask" in the configuration files
+	2. Try using the IP address not the fqdn in "supernode" configuration variable
 
 --------------------------------------------------
 Node
