@@ -1,4 +1,4 @@
-Last updated: 2012-06-25 15:45 GMT-6
+Last updated: 2013-09-25 11:49 GMT-6
 
 --------------------------------------------------
 ntvld
@@ -13,7 +13,7 @@ You can run node, supernode or tunnel alone (see instructions below). For an aut
 2. See what are the available options
 # ntvld -h
 
-3. See the actual status of nodes, supernode and tunnels daemons in the current machine
+3. See the actual status of nodes, supernode and tunnels daemons in the current machine (you may need tunctl installed)
 # ntvld -t
 
 4. To stop any daemons running to a fresh start type
@@ -189,5 +189,5 @@ NULL (-O3) 10659
 
 
 
-(C) 2012 - ntvl - Mario Rodriguez
+(C) 2012-2013 - ntvl - Mario Rodriguez
 (C) 2007-2010 - n2n - Luca Deri, Richard Andrews

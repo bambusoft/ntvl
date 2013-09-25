@@ -1,10 +1,10 @@
 REQUIREMENTS FOR NODE
 =====================
-If NTVL_OPTION_AES is equal to yes in Makefile
+If NTVL_OPTION_AES is equal to yes in Makefile you need
 - openssl/aes.h
 - openssl/
 - libcrypt
-- tunctl
+- tunctl	(ubuntu users: sudo apt-get install uml-utilities)
 
 
 INSTALL
