@@ -1,6 +1,8 @@
 NTVL - Nat Traversal VLAN / VPN
 ===============================
 
+IMPORTANT: THIS PROJECT IS NO LONGER MAINTEINED
+
 Nat Traversal VLAN / VPN, is a networking tool to create a public/private network on the Internet  bypassing firewalls.
 
 You can find the latest version at
